@@ -45,6 +45,15 @@ Back it up with `docker run --rm -v loreforge-data:/data -v "$PWD":/backup alpin
 /backup/loreforge-data.tgz -C /data .`, or use the in-app JSON export. To use a bind mount
 instead, see the comments in the compose file (the container runs as uid 1000).
 
+While this repository is private, the GHCR package is private too. On the Docker host, log in
+once with a personal access token that has `read:packages`:
+
+```bash
+echo "$GHCR_TOKEN" | docker login ghcr.io -u StanleyMejia --password-stdin
+```
+
+Alternatively make the package public under your profile's Packages settings.
+
 Behind a reverse proxy, set `ORIGIN` to the public URL (e.g. `https://lore.example.lan`) and
 uncomment `PROTOCOL_HEADER` / `HOST_HEADER`.
 
