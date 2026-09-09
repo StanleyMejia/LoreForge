@@ -11,11 +11,18 @@ import {
 import { updateEvent } from '$lib/server/repo/timeline';
 import { makeResolver, renderMarkdown } from '$lib/markdown';
 import { num, str } from '$lib/server/form';
+import { chaptersForEvents } from '$lib/server/repo/manuscripts';
 
 export const load: PageServerLoad = async ({ parent, url }) => {
 	const { world, index } = await parent();
 	const ctx = { elementBase: `/w/${world.slug}/e/`, resolve: makeResolver(index) };
-	const events = listEvents(world.id).map((e) => ({ ...e, html: renderMarkdown(e.body, ctx) }));
+	const raw = listEvents(world.id);
+	const told = chaptersForEvents(raw.map((e) => e.id));
+	const events = raw.map((e) => ({
+		...e,
+		html: renderMarkdown(e.body, ctx),
+		chapters: told.get(e.id) ?? []
+	}));
 	const editId = url.searchParams.get('edit');
 	const editing = editId ? (events.find((e) => e.id === editId) ?? null) : null;
 	return { events, editing };

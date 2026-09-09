@@ -1,13 +1,28 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { timeAgo } from '$lib/format';
-	import { panelIcon } from '$lib/types';
+	import { panelIcon, ROLE_LABELS } from '$lib/types';
 
 	let { data, form } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
 	let confirmDelete = $state(false);
 	let relQuery = $state('');
 	let relToId = $state('');
+	const byManuscript = $derived.by(() => {
+		const out: { id: string; title: string; chapters: typeof data.appearances }[] = [];
+		for (const a of data.appearances) {
+			const last = out[out.length - 1];
+			if (last && last.id === a.manuscriptId) last.chapters.push(a);
+			else out.push({ id: a.manuscriptId, title: a.manuscriptTitle, chapters: [a] });
+		}
+		return out;
+	});
+	const roleClass: Record<string, string> = {
+		pov: 'border-amber-600/70 text-amber-300',
+		location: 'border-emerald-600/70 text-emerald-300',
+		cast: 'border-sky-600/70 text-sky-300',
+		mention: 'border-slate-700 text-slate-400'
+	};
 	const relOptions = $derived(
 		data.index
 			.filter(
@@ -215,6 +230,46 @@
 						<button class="btn btn-sm" type="submit">Add</button>
 					</form>
 				</details>
+			</section>
+
+			<section class="card" data-role="appearances">
+				<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+					Appears in
+				</h2>
+				{#if byManuscript.length}
+					<div class="space-y-3">
+						{#each byManuscript as m (m.id)}
+							<div>
+								<a
+									href="{base}/m/{m.id}"
+									class="text-xs font-semibold text-slate-300 hover:text-amber-300">📖 {m.title}</a
+								>
+								<ul class="mt-1 space-y-1 text-sm">
+									{#each m.chapters as c (c.chapterId)}
+										<li class="flex items-start justify-between gap-2">
+											<a
+												href="{base}/m/{m.id}/c/{c.chapterId}"
+												class="min-w-0 truncate text-slate-200 hover:text-amber-300"
+												><span class="text-slate-600">{c.chapterIndex}.</span> {c.chapterTitle}</a
+											>
+											<span class="flex shrink-0 gap-1">
+												{#each c.roles as r (r)}<span
+														class="rounded border px-1 text-[10px] uppercase {roleClass[r]}"
+														>{ROLE_LABELS[r]}</span
+													>{/each}
+											</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="muted">
+						Not in any chapter yet. Set it as POV, location or cast in a chapter's reference panel,
+						or mention it with <code class="text-amber-300">[[{data.element.name}]]</code>.
+					</p>
+				{/if}
 			</section>
 
 			<section class="card">

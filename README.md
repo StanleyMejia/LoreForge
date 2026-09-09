@@ -24,6 +24,12 @@ One Node process, one SQLite file, no external services.
   calendar system works.
 - **Manuscripts** – books → chapters with a distraction-free Markdown editor, status
   tracking, word counts, focus mode and Ctrl+S.
+- **Chapter cross-references** – every chapter has a reference panel: point-of-view
+  character, location, timeline event and cast, plus a live list of every element
+  `[[mentioned]]` in the text with a one-click peek at its attributes and an
+  insert-at-cursor element search. Element pages show an "Appears in" list with roles,
+  manuscripts get a cast summary and a continuous read-through view, timeline events show
+  the chapters told there, and search covers chapters.
 - **Search & tags** across the whole world.
 - **Export** the entire world as a single JSON file.
 
@@ -113,6 +119,8 @@ SvelteKit (Svelte 5, TypeScript, Tailwind v4)
 - `links` is a derived table of `[[wiki links]]` extracted on every save. It powers backlinks
   and the "mentions" edges in the relationship map.
 - `relationships` are explicit, user-labelled edges.
+- `chapter_refs` holds structured chapter → element references (`pov`, `location`, `cast`);
+  text mentions in chapters live in `links` with `source_kind = 'chapter'`.
 
 ### Schema changes
 

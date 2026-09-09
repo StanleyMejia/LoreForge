@@ -6,7 +6,9 @@ import {
 	deleteManuscript,
 	getManuscript,
 	listChapters,
+	manuscriptCast,
 	moveChapter,
+	refsByChapter,
 	updateManuscript
 } from '$lib/server/repo/manuscripts';
 import { str } from '$lib/server/form';
@@ -15,7 +17,17 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 	const { world } = await parent();
 	const manuscript = getManuscript(world.id, params.manuscript);
 	if (!manuscript) error(404, 'Manuscript not found');
-	return { manuscript, chapters: listChapters(manuscript.id) };
+	const refs = refsByChapter(manuscript.id);
+	const chapters = listChapters(manuscript.id).map((c) => {
+		const r = refs.get(c.id) ?? [];
+		return {
+			...c,
+			pov: r.find((x) => x.role === 'pov') ?? null,
+			location: r.find((x) => x.role === 'location') ?? null,
+			castCount: r.filter((x) => x.role === 'cast').length
+		};
+	});
+	return { manuscript, chapters, cast: manuscriptCast(manuscript.id) };
 };
 
 function ctx(params: { world: string; manuscript: string }) {

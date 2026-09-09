@@ -13,6 +13,7 @@ import {
 } from '$lib/server/repo/elements';
 import { makeResolver, renderMarkdown, type RenderContext } from '$lib/markdown';
 import { str } from '$lib/server/form';
+import { appearances } from '$lib/server/repo/manuscripts';
 import type { Panel } from '$lib/types';
 
 /** A panel prepared for display: markdown rendered, element refs resolved. */
@@ -126,7 +127,9 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		type,
 		panels: prepare(element.panels, world.slug, ctx),
 		relationships: relationshipsFor(element.id),
-		backlinks: backlinks(world.slug, element.id)
+		// chapter mentions are shown under "Appears in" instead
+		backlinks: backlinks(world.slug, element.id).filter((b) => b.kind !== 'chapter'),
+		appearances: appearances(element.id)
 	};
 };
 

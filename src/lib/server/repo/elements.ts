@@ -55,7 +55,9 @@ export function elementIndex(worldId: string) {
 			id: elements.id,
 			slug: elements.slug,
 			name: elements.name,
+			summary: elements.summary,
 			typeKey: elementTypes.key,
+			typeName: elementTypes.singular,
 			icon: elementTypes.icon
 		})
 		.from(elements)

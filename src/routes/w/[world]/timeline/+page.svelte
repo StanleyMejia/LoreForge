@@ -158,6 +158,19 @@
 							</div>
 						</div>
 						{#if ev.body.trim()}<div class="md mt-2 text-sm">{@html ev.html}</div>{/if}
+						{#if ev.chapters.length}
+							<div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+								<span>Told in:</span>
+								{#each ev.chapters as c (c.chapterId)}
+									<a
+										class="chip hover:border-amber-600"
+										href="{base}/m/{c.manuscriptId}/c/{c.chapterId}"
+										>📖 {c.chapterTitle}
+										<span class="ml-1 text-slate-500">{c.manuscriptTitle}</span></a
+									>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				</article>
 			{/each}

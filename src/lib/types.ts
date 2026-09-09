@@ -114,3 +114,12 @@ export function panelsText(panels: Panel[]): string {
 
 export const CHAPTER_STATUSES = ['draft', 'revised', 'final'] as const;
 export type ChapterStatus = (typeof CHAPTER_STATUSES)[number];
+
+export const CHAPTER_ROLES = ['pov', 'location', 'cast'] as const;
+export type ChapterRole = (typeof CHAPTER_ROLES)[number];
+export const ROLE_LABELS: Record<ChapterRole | 'mention', string> = {
+	pov: 'POV',
+	location: 'Location',
+	cast: 'Cast',
+	mention: 'Mentioned'
+};
