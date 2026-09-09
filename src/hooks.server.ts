@@ -1,34 +1,57 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import { error, redirect, type Handle } from '@sveltejs/kit';
 import { authConfig } from '$lib/server/auth/config';
 import { resolveSession, SESSION_COOKIE, sessionCookieOptions } from '$lib/server/auth/session';
+import { getWorldBySlug } from '$lib/server/repo/worlds';
+import { canEdit, roleFor } from '$lib/server/repo/members';
 
 /** Paths reachable without a session. Static assets never reach this hook (served by the adapter). */
 const PUBLIC = [/^\/healthz$/, /^\/login$/, /^\/auth\//, /^\/favicon/];
+/** Pages inside a world that only editors may open. */
+const EDIT_PAGES = [/\/e\/new$/, /\/edit$/, /\/settings$/];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;
 	event.locals.session = null;
+	event.locals.world = null;
 
-	if (!authConfig.enabled) return resolve(event);
-
-	const token = event.cookies.get(SESSION_COOKIE);
-	if (token) {
-		const hit = resolveSession(token);
-		if (hit) {
-			event.locals.user = hit.user;
-			event.locals.session = hit.session;
-		} else {
-			event.cookies.delete(SESSION_COOKIE, sessionCookieOptions());
+	if (authConfig.enabled) {
+		const token = event.cookies.get(SESSION_COOKIE);
+		if (token) {
+			const hit = resolveSession(token);
+			if (hit) {
+				event.locals.user = hit.user;
+				event.locals.session = hit.session;
+			} else {
+				event.cookies.delete(SESSION_COOKIE, sessionCookieOptions());
+			}
+		}
+		const path = event.url.pathname;
+		if (!event.locals.user && !PUBLIC.some((re) => re.test(path))) {
+			if (event.request.method === 'GET' && !event.isDataRequest) {
+				redirect(303, `/login?next=${encodeURIComponent(path + event.url.search)}`);
+			}
+			return new Response('Unauthorized', { status: 401 });
 		}
 	}
 
-	const path = event.url.pathname;
-	if (!event.locals.user && !PUBLIC.some((re) => re.test(path))) {
-		if (event.request.method === 'GET' && !event.isDataRequest) {
-			const next = path + event.url.search;
-			redirect(303, `/login?next=${encodeURIComponent(next)}`);
+	// World access control, enforced once for every route under /w/[slug].
+	const m = /^\/w\/([^/]+)(\/.*)?$/.exec(event.url.pathname);
+	if (m) {
+		const world = getWorldBySlug(decodeURIComponent(m[1]));
+		if (!world) error(404, 'World not found');
+		const role = authConfig.enabled ? roleFor(world.id, event.locals.user!.id) : 'owner';
+		if (!role) error(404, 'World not found');
+		event.locals.world = { id: world.id, slug: world.slug, role };
+		const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method);
+		if (!canEdit(role)) {
+			if (mutating) error(403, 'You have view-only access to this world');
+			const rest = m[2] ?? '';
+			if (EDIT_PAGES.some((re) => re.test(rest)))
+				error(403, 'You have view-only access to this world');
+			// Viewers opening a chapter editor are sent to the read-through view instead.
+			const ch = /^\/m\/([^/]+)\/c\/([^/]+)$/.exec(rest);
+			if (ch) redirect(303, `/w/${world.slug}/m/${ch[1]}/read#ch-${ch[2]}`);
 		}
-		return new Response('Unauthorized', { status: 401 });
 	}
 
 	const response = await resolve(event);

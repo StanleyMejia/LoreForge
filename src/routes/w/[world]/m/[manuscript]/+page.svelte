@@ -35,14 +35,16 @@
 	</div>
 	<div class="flex gap-2">
 		<a class="btn" href="{mbase}/read">Read through</a>
-		<button class="btn" onclick={() => (editMeta = !editMeta)}>Edit details</button>
-		{#if confirmDelete}
-			<form method="POST" action="?/delete" use:enhance>
-				<button class="btn btn-danger" type="submit">Really delete</button>
-			</form>
-			<button class="btn btn-ghost" onclick={() => (confirmDelete = false)}>Cancel</button>
-		{:else}
-			<button class="btn btn-ghost" onclick={() => (confirmDelete = true)}>Delete</button>
+		{#if !data.readonly}
+			<button class="btn" onclick={() => (editMeta = !editMeta)}>Edit details</button>
+			{#if confirmDelete}
+				<form method="POST" action="?/delete" use:enhance>
+					<button class="btn btn-danger" type="submit">Really delete</button>
+				</form>
+				<button class="btn btn-ghost" onclick={() => (confirmDelete = false)}>Cancel</button>
+			{:else}
+				<button class="btn btn-ghost" onclick={() => (confirmDelete = true)}>Delete</button>
+			{/if}
 		{/if}
 	</div>
 </header>
@@ -87,7 +89,10 @@
 				{#each data.chapters as c, i (c.id)}
 					<li class="flex items-center gap-3 py-2">
 						<span class="w-6 text-right text-xs text-slate-600">{i + 1}</span>
-						<a href="{mbase}/c/{c.id}" class="min-w-0 flex-1 hover:text-amber-300">
+						<a
+							href={data.readonly ? `${mbase}/read#ch-${c.id}` : `${mbase}/c/${c.id}`}
+							class="min-w-0 flex-1 hover:text-amber-300"
+						>
 							<div class="truncate font-medium">{c.title}</div>
 							{#if c.synopsis}<div class="muted truncate text-xs">{c.synopsis}</div>{/if}
 							{#if c.pov || c.location || c.castCount}
@@ -104,33 +109,37 @@
 						<span class="hidden w-24 text-right text-xs text-slate-600 sm:block"
 							>{timeAgo(c.updatedAt)}</span
 						>
-						<form method="POST" action="?/move" use:enhance class="flex gap-0.5">
-							<input type="hidden" name="id" value={c.id} />
-							<button
-								class="btn btn-ghost btn-sm"
-								name="dir"
-								value="up"
-								disabled={i === 0}
-								title="Move up">↑</button
-							>
-							<button
-								class="btn btn-ghost btn-sm"
-								name="dir"
-								value="down"
-								disabled={i === data.chapters.length - 1}
-								title="Move down">↓</button
-							>
-						</form>
+						{#if !data.readonly}
+							<form method="POST" action="?/move" use:enhance class="flex gap-0.5">
+								<input type="hidden" name="id" value={c.id} />
+								<button
+									class="btn btn-ghost btn-sm"
+									name="dir"
+									value="up"
+									disabled={i === 0}
+									title="Move up">↑</button
+								>
+								<button
+									class="btn btn-ghost btn-sm"
+									name="dir"
+									value="down"
+									disabled={i === data.chapters.length - 1}
+									title="Move down">↓</button
+								>
+							</form>
+						{/if}
 					</li>
 				{/each}
 			</ol>
 		{:else}
 			<p class="muted mb-3">No chapters yet.</p>
 		{/if}
-		<form method="POST" action="?/addChapter" use:enhance class="mt-4 flex gap-2">
-			<input class="input" name="title" placeholder="New chapter title (optional)" />
-			<button class="btn btn-primary" type="submit">+ Chapter</button>
-		</form>
+		{#if !data.readonly}
+			<form method="POST" action="?/addChapter" use:enhance class="mt-4 flex gap-2">
+				<input class="input" name="title" placeholder="New chapter title (optional)" />
+				<button class="btn btn-primary" type="submit">+ Chapter</button>
+			</form>
+		{/if}
 	</section>
 
 	<aside class="card self-start" data-role="cast">

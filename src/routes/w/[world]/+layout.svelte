@@ -39,6 +39,9 @@
 				<a href={base} class="mt-1 block truncate text-lg font-bold text-slate-50"
 					>{data.world.name}</a
 				>
+				{#if data.authEnabled}
+					<span class="chip mt-1 capitalize" title="Your role in this world">{data.role}</span>
+				{/if}
 			</div>
 
 			<form action="{base}/search" class="px-3 pt-3">
@@ -85,9 +88,11 @@
 				<p class="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
 					World
 				</p>
-				<a href="{base}/settings" class="nav {active(`${base}/settings`) ? 'nav-active' : ''}"
-					><span>⚙️</span> Settings</a
-				>
+				{#if !data.readonly}
+					<a href="{base}/settings" class="nav {active(`${base}/settings`) ? 'nav-active' : ''}"
+						><span>⚙️</span> Settings</a
+					>
+				{/if}
 				<a href="{base}/export" class="nav" data-sveltekit-reload><span>⬇️</span> Export JSON</a>
 			</nav>
 

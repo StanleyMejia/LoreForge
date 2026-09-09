@@ -33,6 +33,7 @@ One Node process, one SQLite file, no external services.
 - **Search & tags** across the whole world.
 - **Export** the entire world as a single JSON file.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
+- **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
 
 ## Run it
 
@@ -98,19 +99,39 @@ on a trusted LAN. Set it and every page requires a login through your identity p
 3. `docker compose up -d`. Sign-out also ends the Pocket ID session when the provider
    advertises `end_session_endpoint`.
 
-Everyone who can sign in (and passes the allowlists) sees the same worlds. Per-user worlds
-and roles are on the roadmap. The `/healthz` endpoint stays public for container healthchecks.
+With sign-in enabled, worlds belong to the person who created them. The `/healthz` endpoint
+stays public for container healthchecks.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `OIDC_ISSUER` | – | Provider base URL; enables auth when set |
-| `OIDC_CLIENT_ID` | – | Client ID registered at the provider |
-| `OIDC_CLIENT_SECRET` | – | Client secret; omit for a public (PKCE-only) client |
-| `OIDC_SCOPES` | `openid profile email` | Requested scopes |
-| `OIDC_PROVIDER_NAME` | `SSO` | Name shown on the login button |
-| `AUTH_ALLOWED_EMAILS` | – | Comma-separated email allowlist |
-| `AUTH_ALLOWED_GROUPS` | – | Comma-separated group allowlist (`groups` claim) |
-| `SESSION_TTL_DAYS` | `30` | Session lifetime, sliding |
+### Sharing worlds
+
+Owners share a world from **Settings → Sharing**, either by email or with an invite link.
+
+| Role   | Can                                                                                  |
+| ------ | ------------------------------------------------------------------------------------ |
+| Owner  | Everything, including sharing, renaming and deleting the world                       |
+| Editor | Create and change elements, timeline, manuscripts and element types                  |
+| Viewer | Read everything and export; all editing controls are hidden and rejected server-side |
+
+- **By email**: the share is pending until that person signs in for the first time with the
+  same email; it attaches automatically.
+- **Invite links** (`/invite/<token>`): carry a role and an expiry (1–90 days), can be revoked,
+  and count their uses. Opening one while signed in adds you to the world.
+- Worlds created before sign-in was enabled show up as **Unclaimed** on the worlds page for
+  every user; the first person to claim one becomes its owner.
+
+Access is enforced in one place (`src/hooks.server.ts`): non-members get a 404 for the whole
+`/w/<world>` tree, viewers get a 403 on any write or edit page.
+
+| Variable              | Default                | Purpose                                             |
+| --------------------- | ---------------------- | --------------------------------------------------- |
+| `OIDC_ISSUER`         | –                      | Provider base URL; enables auth when set            |
+| `OIDC_CLIENT_ID`      | –                      | Client ID registered at the provider                |
+| `OIDC_CLIENT_SECRET`  | –                      | Client secret; omit for a public (PKCE-only) client |
+| `OIDC_SCOPES`         | `openid profile email` | Requested scopes                                    |
+| `OIDC_PROVIDER_NAME`  | `SSO`                  | Name shown on the login button                      |
+| `AUTH_ALLOWED_EMAILS` | –                      | Comma-separated email allowlist                     |
+| `AUTH_ALLOWED_GROUPS` | –                      | Comma-separated group allowlist (`groups` claim)    |
+| `SESSION_TTL_DAYS`    | `30`                   | Session lifetime, sliding                           |
 
 ### Docker Compose, build from source
 
@@ -158,6 +179,8 @@ SvelteKit (Svelte 5, TypeScript, Tailwind v4)
 - `links` is a derived table of `[[wiki links]]` extracted on every save. It powers backlinks
   and the "mentions" edges in the relationship map.
 - `relationships` are explicit, user-labelled edges.
+- `world_members` maps users (or pending emails) to worlds with a role; `world_invites` are
+  link tokens that grant a role on redemption.
 - `chapter_refs` holds structured chapter → element references (`pov`, `location`, `cast`);
   text mentions in chapters live in `links` with `source_kind = 'chapter'`.
 

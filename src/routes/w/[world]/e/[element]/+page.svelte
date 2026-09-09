@@ -73,17 +73,19 @@
 				</div>
 			</div>
 		</div>
-		<div class="flex gap-2">
-			<a class="btn btn-primary" href="{base}/e/{data.element.slug}/edit">Edit</a>
-			{#if confirmDelete}
-				<form method="POST" action="?/delete" use:enhance>
-					<button class="btn btn-danger" type="submit">Really delete</button>
-				</form>
-				<button class="btn btn-ghost" onclick={() => (confirmDelete = false)}>Cancel</button>
-			{:else}
-				<button class="btn btn-ghost" onclick={() => (confirmDelete = true)}>Delete</button>
-			{/if}
-		</div>
+		{#if !data.readonly}
+			<div class="flex gap-2">
+				<a class="btn btn-primary" href="{base}/e/{data.element.slug}/edit">Edit</a>
+				{#if confirmDelete}
+					<form method="POST" action="?/delete" use:enhance>
+						<button class="btn btn-danger" type="submit">Really delete</button>
+					</form>
+					<button class="btn btn-ghost" onclick={() => (confirmDelete = false)}>Cancel</button>
+				{:else}
+					<button class="btn btn-ghost" onclick={() => (confirmDelete = true)}>Delete</button>
+				{/if}
+			</div>
+		{/if}
 	</header>
 
 	<div class="grid gap-8 lg:grid-cols-[1fr_300px]">
@@ -201,12 +203,14 @@
 									>
 									{#if r.notes}<div class="text-xs text-slate-400">{r.notes}</div>{/if}
 								</div>
-								<form method="POST" action="?/removeRelationship" use:enhance>
-									<input type="hidden" name="id" value={r.id} />
-									<button class="text-slate-600 hover:text-red-400" title="Remove" type="submit"
-										>✕</button
-									>
-								</form>
+								{#if !data.readonly}
+									<form method="POST" action="?/removeRelationship" use:enhance>
+										<input type="hidden" name="id" value={r.id} />
+										<button class="text-slate-600 hover:text-red-400" title="Remove" type="submit"
+											>✕</button
+										>
+									</form>
+								{/if}
 							</li>
 						{/each}
 					</ul>
@@ -214,22 +218,28 @@
 					<p class="muted mb-3">None yet.</p>
 				{/if}
 
-				<details class="group">
-					<summary class="cursor-pointer text-xs text-amber-400 hover:underline"
-						>+ Add relationship</summary
-					>
-					<form method="POST" action="?/addRelationship" use:enhance class="mt-2 space-y-2">
-						<input class="input" placeholder="Find element…" bind:value={relQuery} />
-						<select class="select" name="toId" bind:value={relToId} required size="4">
-							{#each relOptions as e (e.id)}<option value={e.id}>{e.icon} {e.name}</option>{/each}
-						</select>
-						<input class="input" name="label" placeholder="Label, e.g. mentor of" required />
-						<input class="input" name="reverseLabel" placeholder="Reverse label, e.g. student of" />
-						<input class="input" name="notes" placeholder="Notes (optional)" />
-						{#if form?.relError}<p class="text-xs text-red-400">{form.relError}</p>{/if}
-						<button class="btn btn-sm" type="submit">Add</button>
-					</form>
-				</details>
+				{#if !data.readonly}
+					<details class="group">
+						<summary class="cursor-pointer text-xs text-amber-400 hover:underline"
+							>+ Add relationship</summary
+						>
+						<form method="POST" action="?/addRelationship" use:enhance class="mt-2 space-y-2">
+							<input class="input" placeholder="Find element…" bind:value={relQuery} />
+							<select class="select" name="toId" bind:value={relToId} required size="4">
+								{#each relOptions as e (e.id)}<option value={e.id}>{e.icon} {e.name}</option>{/each}
+							</select>
+							<input class="input" name="label" placeholder="Label, e.g. mentor of" required />
+							<input
+								class="input"
+								name="reverseLabel"
+								placeholder="Reverse label, e.g. student of"
+							/>
+							<input class="input" name="notes" placeholder="Notes (optional)" />
+							{#if form?.relError}<p class="text-xs text-red-400">{form.relError}</p>{/if}
+							<button class="btn btn-sm" type="submit">Add</button>
+						</form>
+					</details>
+				{/if}
 			</section>
 
 			<section class="card" data-role="appearances">
