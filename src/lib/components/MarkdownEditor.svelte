@@ -10,6 +10,10 @@
 		rows?: number;
 		serif?: boolean;
 		showCount?: boolean;
+		/** Grow with the content instead of scrolling inside the box (writing workspace). */
+		autogrow?: boolean;
+		/** Larger, book-like type. */
+		prose?: boolean;
 	}
 
 	let {
@@ -20,7 +24,9 @@
 		placeholder = 'Write in Markdown. Link to anything with [[Name]].',
 		rows = 18,
 		serif = false,
-		showCount = true
+		showCount = true,
+		autogrow = false,
+		prose = false
 	}: Props = $props();
 
 	let textarea: HTMLTextAreaElement | undefined = $state();
@@ -90,10 +96,55 @@
 		});
 	}
 
+	/** Wrap the selection (or insert placeholder) with markdown markers, e.g. ** for bold. */
+	function wrapSelection(marker: string, placeholder = 'text') {
+		if (!textarea) return;
+		const start = textarea.selectionStart;
+		const end = textarea.selectionEnd;
+		const selected = value.slice(start, end);
+		const already =
+			value.slice(start - marker.length, start) === marker &&
+			value.slice(end, end + marker.length) === marker;
+		if (already) {
+			value = value.slice(0, start - marker.length) + selected + value.slice(end + marker.length);
+			queueMicrotask(() => textarea?.setSelectionRange(start - marker.length, end - marker.length));
+			return;
+		}
+		const inner = selected || placeholder;
+		value = value.slice(0, start) + marker + inner + marker + value.slice(end);
+		const a = start + marker.length;
+		queueMicrotask(() => {
+			textarea?.focus();
+			textarea?.setSelectionRange(a, a + inner.length);
+		});
+	}
+
+	function fit() {
+		if (!autogrow || !textarea) return;
+		textarea.style.height = 'auto';
+		textarea.style.height = `${textarea.scrollHeight + 2}px`;
+	}
+	$effect(() => {
+		void value;
+		void preview;
+		fit();
+	});
+
 	function onKeydown(ev: KeyboardEvent) {
-		if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
+		const mod = ev.ctrlKey || ev.metaKey;
+		if (mod && ev.key.toLowerCase() === 's') {
 			ev.preventDefault();
 			textarea?.form?.requestSubmit();
+			return;
+		}
+		if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'b') {
+			ev.preventDefault();
+			wrapSelection('**', 'bold');
+			return;
+		}
+		if (mod && !ev.shiftKey && ev.key.toLowerCase() === 'i') {
+			ev.preventDefault();
+			wrapSelection('*', 'italic');
 			return;
 		}
 		if (query === null || suggestions.length === 0) return;
@@ -114,7 +165,7 @@
 
 <div class="relative">
 	<div class="mb-2 flex items-center justify-between gap-2">
-		<div class="flex gap-1">
+		<div class="flex flex-wrap gap-1">
 			<button
 				type="button"
 				class="btn btn-sm {preview ? 'btn-ghost' : ''}"
@@ -125,6 +176,39 @@
 				class="btn btn-sm {preview ? '' : 'btn-ghost'}"
 				onclick={() => (preview = true)}>Preview</button
 			>
+			{#if !preview}
+				<span class="mx-1 w-px bg-slate-800"></span>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm font-bold"
+					title="Bold (Ctrl+B)"
+					onclick={() => wrapSelection('**', 'bold')}>B</button
+				>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm italic"
+					title="Italic (Ctrl+I)"
+					onclick={() => wrapSelection('*', 'italic')}>I</button
+				>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					title="Heading"
+					onclick={() => insertAtCursor('\n## ')}>H</button
+				>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					title="Quote"
+					onclick={() => insertAtCursor('\n> ')}>❝</button
+				>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					title="Scene break"
+					onclick={() => insertAtCursor('\n\n* * *\n\n')}>* * *</button
+				>
+			{/if}
 		</div>
 		<div class="text-xs text-slate-500">
 			{#if showCount}<span>{words.toLocaleString()} words</span> ·
@@ -139,7 +223,11 @@
 		{name}
 		{rows}
 		{placeholder}
-		class="textarea font-mono text-[13px] leading-relaxed {serif ? 'md-serif' : ''}"
+		class="textarea {prose
+			? 'md-serif min-h-[60vh] resize-none border-0 bg-transparent px-0 text-[1.15rem] leading-[1.8] focus:ring-0'
+			: 'font-mono text-[13px] leading-relaxed'} {serif && !prose ? 'md-serif' : ''} {autogrow
+			? 'overflow-hidden'
+			: ''}"
 		class:hidden={preview}
 		oninput={onInput}
 		onkeydown={onKeydown}

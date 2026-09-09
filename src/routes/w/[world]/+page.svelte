@@ -56,6 +56,29 @@
 	</section>
 
 	<aside class="space-y-8">
+		<section data-role="continue-writing">
+			<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Writing</h2>
+			{#if data.latest}
+				<a
+					href="{base}/write/{data.latest.id}"
+					class="card block border-amber-700/50 hover:border-amber-500"
+				>
+					<div class="text-xs text-amber-400">✍️ Continue writing</div>
+					<div class="mt-0.5 truncate font-semibold text-slate-50">{data.latest.title}</div>
+					<div class="text-xs text-slate-500">
+						{data.latest.manuscriptTitle} · {fmtNumber(data.latest.wordCount)} words · {timeAgo(
+							data.latest.updatedAt
+						)}
+					</div>
+				</a>
+			{:else}
+				<a href="{base}/write" class="card block border-amber-700/50 hover:border-amber-500">
+					<div class="text-xs text-amber-400">✍️ Start writing</div>
+					<div class="muted mt-0.5 text-sm">Open the workspace and begin your first chapter.</div>
+				</a>
+			{/if}
+		</section>
+
 		<section>
 			<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Manuscripts</h2>
 			{#if data.manuscripts.length}

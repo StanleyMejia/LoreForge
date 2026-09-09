@@ -73,6 +73,9 @@
 				<p class="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
 					Story
 				</p>
+				<a href="{base}/write" class="nav {active(`${base}/write`) ? 'nav-active' : ''}"
+					><span>✍️</span> Write</a
+				>
 				<a href="{base}/timeline" class="nav {active(`${base}/timeline`) ? 'nav-active' : ''}"
 					><span>🕰️</span> Timeline</a
 				>
