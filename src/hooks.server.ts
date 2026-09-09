@@ -2,6 +2,7 @@ import { error, redirect, type Handle } from '@sveltejs/kit';
 import { authConfig } from '$lib/server/auth/config';
 import { resolveSession, SESSION_COOKIE, sessionCookieOptions } from '$lib/server/auth/session';
 import { getWorldBySlug } from '$lib/server/repo/worlds';
+import { getChapterInWorld } from '$lib/server/repo/manuscripts';
 import { canEdit, roleFor } from '$lib/server/repo/members';
 
 /** Paths reachable without a session. Static assets never reach this hook (served by the adapter). */
@@ -51,6 +52,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// Viewers opening a chapter editor are sent to the read-through view instead.
 			const ch = /^\/m\/([^/]+)\/c\/([^/]+)$/.exec(rest);
 			if (ch) redirect(303, `/w/${world.slug}/m/${ch[1]}/read#ch-${ch[2]}`);
+			const wr = /^\/write\/([^/]+)$/.exec(rest);
+			if (wr) {
+				const chapter = getChapterInWorld(world.id, wr[1]);
+				redirect(
+					303,
+					chapter
+						? `/w/${world.slug}/m/${chapter.manuscriptId}/read#ch-${chapter.id}`
+						: `/w/${world.slug}/manuscripts`
+				);
+			}
 		}
 	}
 

@@ -22,8 +22,9 @@ One Node process, one SQLite file, no external services.
   force-directed relationship map.
 - **Timeline** – events with free-form date labels, eras and a numeric sort key, so any
   calendar system works.
-- **Manuscripts** – books → chapters with a distraction-free Markdown editor, status
-  tracking, word counts, focus mode and Ctrl+S.
+- **Writing workspace** – the ✍️ Write entry opens a binder of manuscripts and chapters next to
+  a book-like editor with autosave, focus mode, formatting shortcuts and the reference panel.
+- **Manuscripts** – books → chapters with status tracking, word counts and a read-through view.
 - **Chapter cross-references** – every chapter has a reference panel: point-of-view
   character, location, timeline event and cast, plus a live list of every element
   `[[mentioned]]` in the text with a one-click peek at its attributes and an
@@ -34,6 +35,23 @@ One Node process, one SQLite file, no external services.
 - **Export** the entire world as a single JSON file.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
 - **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
+
+## Writing
+
+**Write** in the sidebar (or _Continue writing_ on the dashboard) opens the workspace on the
+chapter you last touched. The left column is the binder: every manuscript and chapter, with
+one-click _New chapter_ / _New manuscript_. The middle is the page: title, synopsis, and a serif
+editor that grows with the text. The right column is the reference panel: point of view, location,
+timeline event, cast, an element search that inserts `[[links]]`, and a live list of everything
+mentioned in the chapter with a peek at its details.
+
+- Changes autosave 1.5 s after you stop typing; the status line shows _Unsaved changes_,
+  _Saving…_ or _Saved hh:mm_. **Ctrl+S** saves immediately.
+- **Ctrl+B** / **Ctrl+I** wrap the selection in bold / italic; the toolbar adds headings, quotes
+  and a scene break. Markdown and `[[Name]]` links work as everywhere else.
+- **Focus** hides both side columns; the word counter also shows words added this session.
+- Viewers of a shared world are routed to the read-through view instead of the editor.
+- Old chapter URLs (`/m/<manuscript>/c/<chapter>`) redirect into the workspace.
 
 ## Run it
 

@@ -498,3 +498,90 @@ export function readManuscript(manuscriptId: string) {
 		.orderBy(asc(chapters.sortOrder), asc(chapters.createdAt))
 		.all();
 }
+
+// ---- writing workspace -----------------------------------------------------
+
+/** A chapter looked up by id, scoped to a world through its manuscript. */
+export function getChapterInWorld(worldId: string, chapterId: string) {
+	return db
+		.select({
+			id: chapters.id,
+			manuscriptId: chapters.manuscriptId,
+			manuscriptTitle: manuscripts.title,
+			title: chapters.title,
+			synopsis: chapters.synopsis,
+			body: chapters.body,
+			status: chapters.status,
+			wordCount: chapters.wordCount,
+			sortOrder: chapters.sortOrder,
+			eventId: chapters.eventId,
+			updatedAt: chapters.updatedAt
+		})
+		.from(chapters)
+		.innerJoin(manuscripts, eq(manuscripts.id, chapters.manuscriptId))
+		.where(and(eq(manuscripts.worldId, worldId), eq(chapters.id, chapterId)))
+		.get();
+}
+
+export interface BinderManuscript {
+	id: string;
+	title: string;
+	wordCount: number;
+	chapters: { id: string; title: string; status: string; wordCount: number }[];
+}
+
+/** Every manuscript with its chapters in reading order, for the workspace sidebar. */
+export function binder(worldId: string): BinderManuscript[] {
+	const ms = db
+		.select({ id: manuscripts.id, title: manuscripts.title })
+		.from(manuscripts)
+		.where(eq(manuscripts.worldId, worldId))
+		.orderBy(asc(manuscripts.sortOrder), asc(manuscripts.createdAt))
+		.all();
+	if (ms.length === 0) return [];
+	const chs = db
+		.select({
+			id: chapters.id,
+			manuscriptId: chapters.manuscriptId,
+			title: chapters.title,
+			status: chapters.status,
+			wordCount: chapters.wordCount
+		})
+		.from(chapters)
+		.where(
+			inArray(
+				chapters.manuscriptId,
+				ms.map((m) => m.id)
+			)
+		)
+		.orderBy(asc(chapters.sortOrder), asc(chapters.createdAt))
+		.all();
+	return ms.map((m) => {
+		const list = chs.filter((c) => c.manuscriptId === m.id).map(({ manuscriptId: _m, ...c }) => c);
+		return {
+			id: m.id,
+			title: m.title,
+			wordCount: list.reduce((n, c) => n + c.wordCount, 0),
+			chapters: list
+		};
+	});
+}
+
+/** The most recently edited chapter in a world, for "continue writing". */
+export function latestChapter(worldId: string) {
+	return db
+		.select({
+			id: chapters.id,
+			title: chapters.title,
+			manuscriptId: manuscripts.id,
+			manuscriptTitle: manuscripts.title,
+			updatedAt: chapters.updatedAt,
+			wordCount: chapters.wordCount
+		})
+		.from(chapters)
+		.innerJoin(manuscripts, eq(manuscripts.id, chapters.manuscriptId))
+		.where(eq(manuscripts.worldId, worldId))
+		.orderBy(sql`${chapters.updatedAt} desc`)
+		.limit(1)
+		.get();
+}

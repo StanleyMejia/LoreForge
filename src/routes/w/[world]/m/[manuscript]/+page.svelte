@@ -90,7 +90,7 @@
 					<li class="flex items-center gap-3 py-2">
 						<span class="w-6 text-right text-xs text-slate-600">{i + 1}</span>
 						<a
-							href={data.readonly ? `${mbase}/read#ch-${c.id}` : `${mbase}/c/${c.id}`}
+							href={data.readonly ? `${mbase}/read#ch-${c.id}` : `${base}/write/${c.id}`}
 							class="min-w-0 flex-1 hover:text-amber-300"
 						>
 							<div class="truncate font-medium">{c.title}</div>
