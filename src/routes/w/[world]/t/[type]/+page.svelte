@@ -31,9 +31,11 @@
 			{data.elements.length === 1 ? data.type.singular.toLowerCase() : data.type.name.toLowerCase()}
 		</p>
 	</div>
-	<a class="btn btn-primary" href="{base}/e/new?type={data.type.key}"
-		>+ New {data.type.singular.toLowerCase()}</a
-	>
+	{#if !data.readonly}
+		<a class="btn btn-primary" href="{base}/e/new?type={data.type.key}"
+			>+ New {data.type.singular.toLowerCase()}</a
+		>
+	{/if}
 </header>
 
 <div class="mb-6 grid gap-3 sm:grid-cols-2">
@@ -43,10 +45,12 @@
 		placeholder="Filter {data.type.name.toLowerCase()}…"
 		bind:value={filter}
 	/>
-	<form method="POST" action="?/quickAdd" use:enhance class="flex gap-2">
-		<input class="input" name="name" placeholder="Quick add: name, then Enter" required />
-		<button class="btn" type="submit">Add</button>
-	</form>
+	{#if !data.readonly}
+		<form method="POST" action="?/quickAdd" use:enhance class="flex gap-2">
+			<input class="input" name="name" placeholder="Quick add: name, then Enter" required />
+			<button class="btn" type="submit">Add</button>
+		</form>
+	{/if}
 </div>
 {#if form?.error}<p class="mb-4 text-sm text-red-400">{form.error}</p>{/if}
 

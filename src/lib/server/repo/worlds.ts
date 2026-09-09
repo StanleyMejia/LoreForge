@@ -39,13 +39,23 @@ function uniqueWorldSlug(name: string): string {
 	return slug;
 }
 
-export function createWorld(name: string, description = '') {
+export function createWorld(name: string, description = '', owner?: { id: string; email: string }) {
 	return db.transaction((tx) => {
 		const world = tx
 			.insert(worlds)
 			.values({ name, description, slug: uniqueWorldSlug(name) })
 			.returning()
 			.get();
+		if (owner) {
+			tx.insert(schema.worldMembers)
+				.values({
+					worldId: world.id,
+					userId: owner.id,
+					email: owner.email || `user:${owner.id}`,
+					role: 'owner'
+				})
+				.run();
+		}
 		tx.insert(elementTypes)
 			.values(
 				DEFAULT_TYPES.map((t, i) => ({

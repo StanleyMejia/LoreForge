@@ -32,9 +32,11 @@
 			{data.events.length} events, ordered by sort key. Use any calendar you like for the date label.
 		</p>
 	</div>
-	<button class="btn btn-primary" onclick={() => (showNew = !showNew)}
-		>{showNew ? 'Close' : '+ New event'}</button
-	>
+	{#if !data.readonly}
+		<button class="btn btn-primary" onclick={() => (showNew = !showNew)}
+			>{showNew ? 'Close' : '+ New event'}</button
+		>
+	{/if}
 </header>
 
 {#snippet eventFields(
@@ -142,20 +144,22 @@
 								<div class="text-xs text-slate-500">{ev.dateLabel || `#${ev.sortKey}`}</div>
 								<h3 class="text-lg font-semibold text-slate-50">{ev.title}</h3>
 							</div>
-							<div class="flex gap-1">
-								<a class="btn btn-ghost btn-sm" href="{base}/timeline?edit={ev.id}">Edit</a>
-								<form
-									method="POST"
-									action="?/delete"
-									use:enhance
-									onsubmit={(e) => {
-										if (!confirm(`Delete "${ev.title}"?`)) e.preventDefault();
-									}}
-								>
-									<input type="hidden" name="id" value={ev.id} />
-									<button class="btn btn-ghost btn-sm text-red-300" type="submit">Delete</button>
-								</form>
-							</div>
+							{#if !data.readonly}
+								<div class="flex gap-1">
+									<a class="btn btn-ghost btn-sm" href="{base}/timeline?edit={ev.id}">Edit</a>
+									<form
+										method="POST"
+										action="?/delete"
+										use:enhance
+										onsubmit={(e) => {
+											if (!confirm(`Delete "${ev.title}"?`)) e.preventDefault();
+										}}
+									>
+										<input type="hidden" name="id" value={ev.id} />
+										<button class="btn btn-ghost btn-sm text-red-300" type="submit">Delete</button>
+									</form>
+								</div>
+							{/if}
 						</div>
 						{#if ev.body.trim()}<div class="md mt-2 text-sm">{@html ev.html}</div>{/if}
 						{#if ev.chapters.length}

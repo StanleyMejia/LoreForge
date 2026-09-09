@@ -38,24 +38,26 @@
 		{/if}
 	</section>
 
-	<form method="POST" action="?/create" use:enhance class="card space-y-3 self-start">
-		<h2 class="font-semibold">New manuscript</h2>
-		<div>
-			<label class="label" for="title">Title</label><input
-				class="input"
-				id="title"
-				name="title"
-				required
-			/>
-		</div>
-		<div>
-			<label class="label" for="description">Description</label><textarea
-				class="textarea min-h-16"
-				id="description"
-				name="description"
-				rows="2"></textarea>
-		</div>
-		{#if form?.error}<p class="text-sm text-red-400">{form.error}</p>{/if}
-		<button class="btn btn-primary" type="submit">Create</button>
-	</form>
+	{#if !data.readonly}
+		<form method="POST" action="?/create" use:enhance class="card space-y-3 self-start">
+			<h2 class="font-semibold">New manuscript</h2>
+			<div>
+				<label class="label" for="title">Title</label><input
+					class="input"
+					id="title"
+					name="title"
+					required
+				/>
+			</div>
+			<div>
+				<label class="label" for="description">Description</label><textarea
+					class="textarea min-h-16"
+					id="description"
+					name="description"
+					rows="2"></textarea>
+			</div>
+			{#if form?.error}<p class="text-sm text-red-400">{form.error}</p>{/if}
+			<button class="btn btn-primary" type="submit">Create</button>
+		</form>
+	{/if}
 </div>

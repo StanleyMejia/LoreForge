@@ -237,3 +237,50 @@ export const sessions = sqliteTable(
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+
+// ---- ownership & sharing ---------------------------------------------------
+
+export const WORLD_ROLES = ['owner', 'editor', 'viewer'] as const;
+export type WorldRole = (typeof WORLD_ROLES)[number];
+
+/**
+ * Who can access a world and how. A row with userId = null is a pending share by email,
+ * claimed automatically when a user with that email signs in.
+ */
+export const worldMembers = sqliteTable(
+	'world_members',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		email: text('email').notNull(), // lowercased; the identity the share was addressed to
+		role: text('role').notNull().$type<WorldRole>(),
+		createdAt: now()
+	},
+	(t) => [
+		uniqueIndex('world_members_world_email').on(t.worldId, t.email),
+		index('world_members_user').on(t.userId)
+	]
+);
+
+/** Shareable invite links. Accepting one adds the signed-in user as a member with `role`. */
+export const worldInvites = sqliteTable(
+	'world_invites',
+	{
+		id: id(), // doubles as the unguessable token (UUID v4)
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		role: text('role').notNull().$type<WorldRole>(),
+		createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+		uses: integer('uses').notNull().default(0),
+		createdAt: now()
+	},
+	(t) => [index('world_invites_world').on(t.worldId)]
+);
+
+export type WorldMember = typeof worldMembers.$inferSelect;
+export type WorldInvite = typeof worldInvites.$inferSelect;
