@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import UserMenu from '$lib/components/UserMenu.svelte';
 
 	let { data, children } = $props();
 	let open = $state(false);
@@ -89,6 +90,12 @@
 				>
 				<a href="{base}/export" class="nav" data-sveltekit-reload><span>⬇️</span> Export JSON</a>
 			</nav>
+
+			{#if data.authEnabled && data.user}
+				<div class="border-t border-slate-800 px-3 py-3">
+					<UserMenu user={data.user} authEnabled={data.authEnabled} compact />
+				</div>
+			{/if}
 		</div>
 	</aside>
 

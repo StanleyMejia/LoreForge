@@ -32,6 +32,7 @@ One Node process, one SQLite file, no external services.
   the chapters told there, and search covers chapters.
 - **Search & tags** across the whole world.
 - **Export** the entire world as a single JSON file.
+- **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
 
 ## Run it
 
@@ -72,6 +73,44 @@ Configuration is all environment variables:
 | `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                    |
 | `BODY_SIZE_LIMIT`                | `10M`                | Max request body (long chapters, big panels)        |
 | `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                 |
+
+### Single sign-on with Pocket ID (or any OIDC provider)
+
+Authentication is optional. Leave `OIDC_ISSUER` unset and the instance is open, which is fine
+on a trusted LAN. Set it and every page requires a login through your identity provider
+(Authorization Code flow with PKCE; sessions are server-side in SQLite).
+
+1. In Pocket ID, add an **OIDC client**: name `Loreforge`, callback URL
+   `https://lore.example.lan/auth/callback` (your `ORIGIN` + `/auth/callback`), PKCE enabled.
+   Copy the client ID and, if you keep it a confidential client, the secret.
+2. Set the environment in your compose file:
+
+   ```yaml
+   ORIGIN: https://lore.example.lan
+   OIDC_ISSUER: https://id.example.lan # Pocket ID base URL (discovery is automatic)
+   OIDC_CLIENT_ID: <client id>
+   OIDC_CLIENT_SECRET: <secret> # omit for a public client
+   OIDC_PROVIDER_NAME: Pocket ID # label on the login button
+   AUTH_ALLOWED_EMAILS: you@example.lan # optional, comma-separated
+   AUTH_ALLOWED_GROUPS: writers # optional; adds the `groups` scope
+   ```
+
+3. `docker compose up -d`. Sign-out also ends the Pocket ID session when the provider
+   advertises `end_session_endpoint`.
+
+Everyone who can sign in (and passes the allowlists) sees the same worlds. Per-user worlds
+and roles are on the roadmap. The `/healthz` endpoint stays public for container healthchecks.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `OIDC_ISSUER` | – | Provider base URL; enables auth when set |
+| `OIDC_CLIENT_ID` | – | Client ID registered at the provider |
+| `OIDC_CLIENT_SECRET` | – | Client secret; omit for a public (PKCE-only) client |
+| `OIDC_SCOPES` | `openid profile email` | Requested scopes |
+| `OIDC_PROVIDER_NAME` | `SSO` | Name shown on the login button |
+| `AUTH_ALLOWED_EMAILS` | – | Comma-separated email allowlist |
+| `AUTH_ALLOWED_GROUPS` | – | Comma-separated group allowlist (`groups` claim) |
+| `SESSION_TTL_DAYS` | `30` | Session lifetime, sliding |
 
 ### Docker Compose, build from source
 

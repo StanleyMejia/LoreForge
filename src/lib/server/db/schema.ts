@@ -199,3 +199,41 @@ export type Event = typeof events.$inferSelect;
 export type Manuscript = typeof manuscripts.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
 export type ChapterRef = typeof chapterRefs.$inferSelect;
+
+// ---- authentication --------------------------------------------------------
+
+/** A person who signed in through the OIDC provider. Identity = (issuer, subject). */
+export const users = sqliteTable(
+	'users',
+	{
+		id: id(),
+		issuer: text('issuer').notNull(),
+		subject: text('subject').notNull(),
+		email: text('email').notNull().default(''),
+		name: text('name').notNull().default(''),
+		picture: text('picture').notNull().default(''),
+		createdAt: now(),
+		lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' })
+			.notNull()
+			.default(sql`(unixepoch('subsec') * 1000)`)
+	},
+	(t) => [uniqueIndex('users_issuer_subject').on(t.issuer, t.subject)]
+);
+
+/** Server-side session. The cookie carries a random token; only its SHA-256 hash is stored. */
+export const sessions = sqliteTable(
+	'sessions',
+	{
+		id: text('id').primaryKey(), // sha256(token), base64url
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		idToken: text('id_token').notNull().default(''), // for RP-initiated logout hint
+		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+		createdAt: now()
+	},
+	(t) => [index('sessions_user').on(t.userId), index('sessions_expires').on(t.expiresAt)]
+);
+
+export type User = typeof users.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
