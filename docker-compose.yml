@@ -15,6 +15,13 @@ services:
       # Behind a reverse proxy (Traefik, Caddy, nginx, NPM) uncomment these two:
       # PROTOCOL_HEADER: x-forwarded-proto
       # HOST_HEADER: x-forwarded-host
+      # --- Single sign-on (optional). Leave unset for an open instance on a trusted LAN.
+      # OIDC_ISSUER: https://id.example.lan          # Pocket ID base URL
+      # OIDC_CLIENT_ID: loreforge
+      # OIDC_CLIENT_SECRET: change-me                # omit for a public (PKCE-only) client
+      # OIDC_PROVIDER_NAME: Pocket ID                # label on the login button
+      # AUTH_ALLOWED_EMAILS: you@example.lan         # comma-separated allowlist (optional)
+      # AUTH_ALLOWED_GROUPS: writers                 # requires the 'groups' scope/claim (optional)
     volumes:
       # SQLite database (WAL mode). Named volume: ownership is set up automatically.
       - loreforge-data:/data

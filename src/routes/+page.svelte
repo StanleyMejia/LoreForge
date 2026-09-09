@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { timeAgo } from '$lib/format';
+	import UserMenu from '$lib/components/UserMenu.svelte';
 
 	let { data, form } = $props();
 </script>
@@ -13,6 +14,7 @@
 			<h1 class="text-3xl font-bold tracking-tight text-slate-50">Loreforge</h1>
 			<p class="muted mt-1">Self-hosted worldbuilding and manuscript workspace.</p>
 		</div>
+		<UserMenu user={data.user} authEnabled={data.authEnabled} />
 	</header>
 
 	{#if data.worlds.length}

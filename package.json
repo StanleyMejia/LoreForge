@@ -40,6 +40,7 @@
 	},
 	"dependencies": {
 		"better-sqlite3": "^13.0.2",
-		"marked": "^18.0.12"
+		"marked": "^18.0.12",
+		"openid-client": "^6.8.8"
 	}
 }
