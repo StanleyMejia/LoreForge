@@ -67,6 +67,29 @@
 		});
 	}
 
+	/** Insert text at the caret (or replace the selection). Used by the reference panel. */
+	export function insertAtCursor(text: string) {
+		preview = false;
+		if (!textarea) {
+			value += text;
+			return;
+		}
+		const start = textarea.selectionStart;
+		const end = textarea.selectionEnd;
+		// Keep the inserted reference a separate word: pad with a space when glued to text.
+		const before = value.slice(0, start);
+		const after = value.slice(end);
+		const lead = before && !/[\s(\["]$/.test(before) ? ' ' : '';
+		const trail = after && !/^[\s.,;:!?)\]"]/.test(after) ? ' ' : '';
+		const snippet = lead + text + trail;
+		value = before + snippet + after;
+		const pos = start + snippet.length;
+		queueMicrotask(() => {
+			textarea?.focus();
+			textarea?.setSelectionRange(pos, pos);
+		});
+	}
+
 	function onKeydown(ev: KeyboardEvent) {
 		if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
 			ev.preventDefault();

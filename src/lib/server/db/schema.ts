@@ -158,10 +158,37 @@ export const chapters = sqliteTable(
 		status: text('status').notNull().default('draft'), // draft | revised | final
 		wordCount: integer('word_count').notNull().default(0),
 		sortOrder: integer('sort_order').notNull().default(0),
+		/** Timeline event this chapter takes place at (optional). */
+		eventId: text('event_id').references(() => events.id, { onDelete: 'set null' }),
 		createdAt: now(),
 		updatedAt: updated()
 	},
 	(t) => [index('chapters_manuscript_sort').on(t.manuscriptId, t.sortOrder)]
+);
+
+/**
+ * Structured cross-references from a chapter to world elements.
+ * role: 'pov' (point-of-view character) | 'location' | 'cast' (present in the chapter).
+ * Text mentions ([[links]]) are tracked separately in `links` with sourceKind 'chapter'.
+ */
+export const chapterRefs = sqliteTable(
+	'chapter_refs',
+	{
+		id: id(),
+		chapterId: text('chapter_id')
+			.notNull()
+			.references(() => chapters.id, { onDelete: 'cascade' }),
+		elementId: text('element_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		role: text('role').notNull(),
+		note: text('note').notNull().default(''),
+		sortOrder: integer('sort_order').notNull().default(0)
+	},
+	(t) => [
+		uniqueIndex('chapter_refs_unique').on(t.chapterId, t.elementId, t.role),
+		index('chapter_refs_element').on(t.elementId)
+	]
 );
 
 export type World = typeof worlds.$inferSelect;
@@ -171,3 +198,4 @@ export type Relationship = typeof relationships.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Manuscript = typeof manuscripts.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
+export type ChapterRef = typeof chapterRefs.$inferSelect;

@@ -23,10 +23,29 @@
 </form>
 
 {#if data.q || data.tag}
-	<p class="muted mb-4">{data.results.length} result{data.results.length === 1 ? '' : 's'}</p>
+	<p class="muted mb-4">
+		{data.results.length} element{data.results.length === 1 ? '' : 's'}{#if data.chapters.length}
+			· {data.chapters.length} chapter{data.chapters.length === 1 ? '' : 's'}{/if}
+	</p>
 	{#if data.results.length}
 		<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 			{#each data.results as el (el.id)}<ElementCard {base} {el} showType />{/each}
 		</div>
+	{/if}
+	{#if data.chapters.length}
+		<h2 class="mt-8 mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Chapters</h2>
+		<ul class="space-y-2">
+			{#each data.chapters as c (c.id)}
+				<li>
+					<a href="{base}/m/{c.manuscriptId}/c/{c.id}" class="card block hover:border-slate-600">
+						<div class="font-semibold">
+							📖 {c.title} <span class="muted font-normal">· {c.manuscriptTitle}</span>
+						</div>
+						{#if c.synopsis}<div class="muted mt-0.5 text-xs">{c.synopsis}</div>{/if}
+						<div class="mt-1 text-xs text-slate-500">{c.wordCount} words · {c.status}</div>
+					</a>
+				</li>
+			{/each}
+		</ul>
 	{/if}
 {/if}

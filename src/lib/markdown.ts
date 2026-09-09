@@ -4,6 +4,7 @@ export interface LinkTarget {
 	slug: string;
 	name: string;
 	icon?: string;
+	summary?: string;
 }
 
 export interface RenderContext {
@@ -70,7 +71,8 @@ export function createMarkdown(ctx: RenderContext): Marked {
 					const t = token as WikiToken;
 					const hit = ctx.resolve(t.target);
 					if (hit) {
-						return `<a class="wikilink" href="${ctx.elementBase}${encodeURIComponent(hit.slug)}" title="${escapeHtml(hit.name)}">${escapeHtml(t.text)}</a>`;
+						const tip = hit.summary ? `${hit.name} — ${hit.summary}` : hit.name;
+						return `<a class="wikilink" href="${ctx.elementBase}${encodeURIComponent(hit.slug)}" title="${escapeHtml(tip)}">${escapeHtml(t.text)}</a>`;
 					}
 					return `<a class="wikilink wikilink-missing" href="${ctx.elementBase}new?name=${encodeURIComponent(t.target)}" title="Create &quot;${escapeHtml(t.target)}&quot;">${escapeHtml(t.text)}</a>`;
 				}
