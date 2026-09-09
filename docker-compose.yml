@@ -1,0 +1,26 @@
+# Loreforge – pull-and-run. No clone or build needed: copy this file anywhere and run
+#   docker compose up -d
+# The image is published by .github/workflows/docker.yml on every push to main.
+# To build from source instead: docker compose -f docker-compose.build.yml up -d --build
+services:
+  loreforge:
+    image: ghcr.io/stanleymejia/loreforge:latest
+    container_name: loreforge
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      # Public URL you reach the app on. Required for form submissions to be accepted.
+      ORIGIN: http://localhost:3000
+      # Behind a reverse proxy (Traefik, Caddy, nginx, NPM) uncomment these two:
+      # PROTOCOL_HEADER: x-forwarded-proto
+      # HOST_HEADER: x-forwarded-host
+    volumes:
+      # SQLite database (WAL mode). Named volume: ownership is set up automatically.
+      - loreforge-data:/data
+      # Prefer a bind mount? The container runs as uid 1000, so create the directory first:
+      #   mkdir -p ./data && sudo chown 1000:1000 ./data
+      # - ./data:/data
+
+volumes:
+  loreforge-data:

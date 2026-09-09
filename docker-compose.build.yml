@@ -1,0 +1,22 @@
+# Build from source: docker compose -f docker-compose.build.yml up -d --build
+# For pull-and-run without cloning, see docker-compose.yml.
+services:
+  loreforge:
+    build: .
+    image: loreforge:local
+    container_name: loreforge
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      ORIGIN: http://localhost:3000
+      # PROTOCOL_HEADER: x-forwarded-proto
+      # HOST_HEADER: x-forwarded-host
+    volumes:
+      - loreforge-data:/data
+      # Bind mount alternative (container runs as uid 1000):
+      #   mkdir -p ./data && sudo chown 1000:1000 ./data
+      # - ./data:/data
+
+volumes:
+  loreforge-data:

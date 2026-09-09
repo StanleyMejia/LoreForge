@@ -1,0 +1,173 @@
+import { sql } from 'drizzle-orm';
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import type { Panel } from '$lib/types';
+
+const id = () =>
+	text('id')
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID());
+const now = () =>
+	integer('created_at', { mode: 'timestamp_ms' })
+		.notNull()
+		.default(sql`(unixepoch('subsec') * 1000)`);
+const updated = () =>
+	integer('updated_at', { mode: 'timestamp_ms' })
+		.notNull()
+		.default(sql`(unixepoch('subsec') * 1000)`);
+
+export const worlds = sqliteTable('worlds', {
+	id: id(),
+	slug: text('slug').notNull().unique(),
+	name: text('name').notNull(),
+	description: text('description').notNull().default(''),
+	createdAt: now(),
+	updatedAt: updated()
+});
+
+/** A category of element (Characters, Locations, ...). Field schema is per type. */
+export const elementTypes = sqliteTable(
+	'element_types',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		key: text('key').notNull(), // url-safe, unique per world
+		name: text('name').notNull(), // plural display name, e.g. "Characters"
+		singular: text('singular').notNull(), // e.g. "Character"
+		icon: text('icon').notNull().default('📄'),
+		color: text('color').notNull().default('#94a3b8'),
+		sortOrder: integer('sort_order').notNull().default(0),
+		/** Panel template applied to new elements of this type. */
+		panels: text('panels', { mode: 'json' }).notNull().$type<Panel[]>().default([])
+	},
+	(t) => [uniqueIndex('element_types_world_key').on(t.worldId, t.key)]
+);
+
+export const elements = sqliteTable(
+	'elements',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		typeId: text('type_id')
+			.notNull()
+			.references(() => elementTypes.id, { onDelete: 'cascade' }),
+		slug: text('slug').notNull(),
+		name: text('name').notNull(),
+		summary: text('summary').notNull().default(''),
+		panels: text('panels', { mode: 'json' }).notNull().$type<Panel[]>().default([]),
+		tags: text('tags', { mode: 'json' }).notNull().$type<string[]>().default([]),
+		imageUrl: text('image_url').notNull().default(''),
+		createdAt: now(),
+		updatedAt: updated()
+	},
+	(t) => [
+		uniqueIndex('elements_world_slug').on(t.worldId, t.slug),
+		index('elements_world_type').on(t.worldId, t.typeId),
+		index('elements_world_name').on(t.worldId, t.name)
+	]
+);
+
+/** Explicit, labelled relationship between two elements ("mentor of" / "student of"). */
+export const relationships = sqliteTable(
+	'relationships',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		fromId: text('from_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		toId: text('to_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		label: text('label').notNull(),
+		reverseLabel: text('reverse_label').notNull().default(''),
+		notes: text('notes').notNull().default(''),
+		createdAt: now()
+	},
+	(t) => [index('relationships_from').on(t.fromId), index('relationships_to').on(t.toId)]
+);
+
+/**
+ * Implicit links extracted from [[wiki links]] in markdown bodies. Recomputed on save.
+ * sourceKind: 'element' | 'event' | 'chapter'
+ */
+export const links = sqliteTable(
+	'links',
+	{
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		sourceKind: text('source_kind').notNull(),
+		sourceId: text('source_id').notNull(),
+		targetId: text('target_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' })
+	},
+	(t) => [
+		index('links_target').on(t.targetId),
+		index('links_source').on(t.sourceKind, t.sourceId),
+		uniqueIndex('links_unique').on(t.sourceKind, t.sourceId, t.targetId)
+	]
+);
+
+export const events = sqliteTable(
+	'events',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		title: text('title').notNull(),
+		dateLabel: text('date_label').notNull().default(''), // "3rd of Harvest, 1042 AE"
+		sortKey: real('sort_key').notNull().default(0), // numeric position on the timeline
+		era: text('era').notNull().default(''),
+		body: text('body').notNull().default(''),
+		createdAt: now(),
+		updatedAt: updated()
+	},
+	(t) => [index('events_world_sort').on(t.worldId, t.sortKey)]
+);
+
+export const manuscripts = sqliteTable('manuscripts', {
+	id: id(),
+	worldId: text('world_id')
+		.notNull()
+		.references(() => worlds.id, { onDelete: 'cascade' }),
+	title: text('title').notNull(),
+	description: text('description').notNull().default(''),
+	sortOrder: integer('sort_order').notNull().default(0),
+	createdAt: now(),
+	updatedAt: updated()
+});
+
+export const chapters = sqliteTable(
+	'chapters',
+	{
+		id: id(),
+		manuscriptId: text('manuscript_id')
+			.notNull()
+			.references(() => manuscripts.id, { onDelete: 'cascade' }),
+		title: text('title').notNull(),
+		synopsis: text('synopsis').notNull().default(''),
+		body: text('body').notNull().default(''),
+		status: text('status').notNull().default('draft'), // draft | revised | final
+		wordCount: integer('word_count').notNull().default(0),
+		sortOrder: integer('sort_order').notNull().default(0),
+		createdAt: now(),
+		updatedAt: updated()
+	},
+	(t) => [index('chapters_manuscript_sort').on(t.manuscriptId, t.sortOrder)]
+);
+
+export type World = typeof worlds.$inferSelect;
+export type ElementType = typeof elementTypes.$inferSelect;
+export type Element = typeof elements.$inferSelect;
+export type Relationship = typeof relationships.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type Manuscript = typeof manuscripts.$inferSelect;
+export type Chapter = typeof chapters.$inferSelect;
