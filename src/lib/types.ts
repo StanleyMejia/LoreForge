@@ -11,7 +11,7 @@ export interface FieldDef {
 	ref?: string;
 }
 
-export type PanelKind = 'info' | 'text' | 'list' | 'stats' | 'links' | 'gallery';
+export type PanelKind = 'info' | 'text' | 'list' | 'stats' | 'links' | 'gallery' | 'map';
 
 interface PanelBase {
 	id: string;
@@ -48,8 +48,24 @@ export interface GalleryPanel extends PanelBase {
 	kind: 'gallery';
 	images: { url: string; caption: string }[];
 }
+/** A pin on a map image. x/y are fractions (0..1) of the image size. */
+export interface MapPin {
+	id: string;
+	x: number;
+	y: number;
+	label: string;
+	elementId: string;
+	color: string;
+}
+/** An image with interactive pins that can link to any element. */
+export interface MapPanel extends PanelBase {
+	kind: 'map';
+	imageUrl: string;
+	pins: MapPin[];
+}
 
-export type Panel = InfoPanel | TextPanel | ListPanel | StatsPanel | LinksPanel | GalleryPanel;
+export type Panel =
+	InfoPanel | TextPanel | ListPanel | StatsPanel | LinksPanel | GalleryPanel | MapPanel;
 
 export const PANEL_KINDS: { kind: PanelKind; label: string; icon: string; blurb: string }[] = [
 	{ kind: 'info', label: 'Attributes', icon: 'ℹ️', blurb: 'Key facts as labelled fields.' },
@@ -57,7 +73,8 @@ export const PANEL_KINDS: { kind: PanelKind; label: string; icon: string; blurb:
 	{ kind: 'list', label: 'List', icon: '☰', blurb: 'Organised, named list items.' },
 	{ kind: 'stats', label: 'Statistics', icon: '📊', blurb: 'Numeric values as bars.' },
 	{ kind: 'links', label: 'Links', icon: '🔗', blurb: 'Connect to other elements.' },
-	{ kind: 'gallery', label: 'Images', icon: '🖼️', blurb: 'Image URLs with captions.' }
+	{ kind: 'gallery', label: 'Images', icon: '🖼️', blurb: 'Image URLs with captions.' },
+	{ kind: 'map', label: 'Map', icon: '🗺️', blurb: 'An image with pins linked to elements.' }
 ];
 
 export function panelIcon(kind: PanelKind): string {
@@ -89,6 +106,8 @@ export function blankPanel(kind: PanelKind, title = ''): Panel {
 			return { ...base, kind, links: [] };
 		case 'gallery':
 			return { ...base, kind, images: [] };
+		case 'map':
+			return { ...base, kind, imageUrl: '', pins: [] };
 	}
 }
 
@@ -108,6 +127,7 @@ export function panelsText(panels: Panel[]): string {
 		if (p.kind === 'text') parts.push(p.body);
 		else if (p.kind === 'list') for (const i of p.items) parts.push(i.name, i.text);
 		else if (p.kind === 'info') parts.push(...Object.values(p.values));
+		else if (p.kind === 'map') for (const pin of p.pins) parts.push(pin.label);
 	}
 	return parts.join('\n');
 }

@@ -6,7 +6,7 @@ import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
 import { indexElement, removeFromIndex } from './search';
 
-const { elements, elementTypes, links, relationships } = schema;
+const { elements, elementTypes, links, relationships, mapPins } = schema;
 
 export type LinkKind = 'element' | 'event' | 'chapter';
 
@@ -136,6 +136,7 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 		.get();
 	syncLinks(worldId, 'element', row.id, panelsText(row.panels));
 	indexElement(row);
+	syncMapPins(worldId, row.id, row.panels);
 	touchWorld(worldId);
 	return row;
 }
@@ -162,11 +163,13 @@ export function updateElement(worldId: string, id: string, input: ElementInput) 
 		.get();
 	syncLinks(worldId, 'element', row.id, panelsText(row.panels));
 	indexElement(row);
+	syncMapPins(worldId, row.id, row.panels);
 	touchWorld(worldId);
 	return row;
 }
 
 export function deleteElement(id: string) {
+	db.delete(mapPins).where(eq(mapPins.mapElementId, id)).run();
 	removeFromIndex('element', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'element'), eq(links.sourceId, id)))
@@ -365,4 +368,58 @@ export function allTags(worldId: string): { tag: string; count: number }[] {
 	return db.all<{ tag: string; count: number }>(
 		sql`select value as tag, count(*) as count from ${elements}, json_each(${elements.tags}) where ${elements.worldId} = ${worldId} group by value order by count desc, value asc`
 	);
+}
+
+// ---- map pins ------------------------------------------------------------
+
+/** Recompute the derived map_pins rows for one map element from its map panels. */
+export function syncMapPins(worldId: string, mapElementId: string, panels: Panel[]) {
+	db.delete(mapPins).where(eq(mapPins.mapElementId, mapElementId)).run();
+	const rows: (typeof mapPins.$inferInsert)[] = [];
+	for (const p of panels) {
+		if (p.kind !== 'map') continue;
+		for (const pin of p.pins) {
+			if (pin.elementId && pin.elementId !== mapElementId) {
+				rows.push({
+					worldId,
+					mapElementId,
+					panelId: p.id,
+					pinId: pin.id,
+					elementId: pin.elementId,
+					label: pin.label
+				});
+			}
+		}
+	}
+	if (!rows.length) return;
+	const valid = new Set(getElementsByIds(rows.map((r) => r.elementId)).map((e) => e.id));
+	const keep = rows.filter((r) => valid.has(r.elementId));
+	if (keep.length) db.insert(mapPins).values(keep).run();
+}
+
+export interface OnMap {
+	mapId: string;
+	mapName: string;
+	mapSlug: string;
+	panelId: string;
+	pinId: string;
+	label: string;
+}
+
+/** Maps an element is pinned on. */
+export function onMaps(elementId: string): OnMap[] {
+	return db
+		.select({
+			mapId: elements.id,
+			mapName: elements.name,
+			mapSlug: elements.slug,
+			panelId: mapPins.panelId,
+			pinId: mapPins.pinId,
+			label: mapPins.label
+		})
+		.from(mapPins)
+		.innerJoin(elements, eq(elements.id, mapPins.mapElementId))
+		.where(eq(mapPins.elementId, elementId))
+		.orderBy(asc(elements.name))
+		.all();
 }

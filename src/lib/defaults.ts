@@ -22,6 +22,13 @@ const list = (id: string, title: string): Panel => ({ id, kind: 'list', title, i
 const stats = (id: string, title: string): Panel => ({ id, kind: 'stats', title, stats: [] });
 const links = (id: string, title: string): Panel => ({ id, kind: 'links', title, links: [] });
 const gallery = (id: string, title: string): Panel => ({ id, kind: 'gallery', title, images: [] });
+const map = (id: string, title: string): Panel => ({
+	id,
+	kind: 'map',
+	title,
+	imageUrl: '',
+	pins: []
+});
 
 const sel = (key: string, label: string, options: string[]): FieldDef => ({
 	key,
@@ -104,7 +111,7 @@ export const DEFAULT_TYPES: DefaultType[] = [
 				ref('region', 'Region', 'location'),
 				txt('scale', 'Scale')
 			]),
-			gallery('image', 'Map Image'),
+			map('map', 'Map'),
 			list('legend', 'Legend'),
 			links('places', 'Places on this Map')
 		]

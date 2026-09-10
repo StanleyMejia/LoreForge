@@ -307,3 +307,26 @@ export const uploads = sqliteTable(
 );
 
 export type Upload = typeof uploads.$inferSelect;
+
+// ---- map pins (derived) ---------------------------------------------------
+
+/** Pins inside map panels that link to an element; recomputed on element save. */
+export const mapPins = sqliteTable(
+	'map_pins',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		mapElementId: text('map_element_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		panelId: text('panel_id').notNull(),
+		pinId: text('pin_id').notNull(),
+		elementId: text('element_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		label: text('label').notNull().default('')
+	},
+	(t) => [index('map_pins_element').on(t.elementId), index('map_pins_map').on(t.mapElementId)]
+);

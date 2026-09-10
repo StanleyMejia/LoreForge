@@ -43,6 +43,13 @@
       "when": 1789019760740,
       "tag": "0005_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789019979681,
+      "tag": "0006_map_pins",
+      "breakpoints": true
     }
   ]
 }
