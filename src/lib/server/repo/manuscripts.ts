@@ -3,6 +3,7 @@ import { db, schema } from '../db';
 import { countWords } from '$lib/slug';
 import { syncLinks } from './elements';
 import { touchWorld } from './worlds';
+import { indexChapter, removeFromIndex } from './search';
 import { CHAPTER_ROLES, CHAPTER_STATUSES, type ChapterRole, type ChapterStatus } from '$lib/types';
 
 const { manuscripts, chapters, links } = schema;
@@ -58,10 +59,12 @@ export function deleteManuscript(id: string) {
 		.where(eq(chapters.manuscriptId, id))
 		.all()
 		.map((c) => c.id);
-	for (const cid of ids)
+	for (const cid of ids) {
 		db.delete(links)
 			.where(and(eq(links.sourceKind, 'chapter'), eq(links.sourceId, cid)))
 			.run();
+		removeFromIndex('chapter', cid);
+	}
 	db.delete(manuscripts).where(eq(manuscripts.id, id)).run();
 }
 
@@ -143,7 +146,10 @@ export function updateChapter(
 		.where(and(eq(chapters.manuscriptId, manuscriptId), eq(chapters.id, id)))
 		.returning()
 		.get();
-	if (row) syncLinks(worldId, 'chapter', row.id, row.body);
+	if (row) {
+		syncLinks(worldId, 'chapter', row.id, row.body);
+		indexChapter(worldId, row);
+	}
 	db.update(manuscripts)
 		.set({ updatedAt: new Date() })
 		.where(eq(manuscripts.id, manuscriptId))
@@ -153,6 +159,7 @@ export function updateChapter(
 }
 
 export function deleteChapter(manuscriptId: string, id: string) {
+	removeFromIndex('chapter', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'chapter'), eq(links.sourceId, id)))
 		.run();

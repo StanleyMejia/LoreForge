@@ -74,3 +74,8 @@ body {
 .nav-active {
 	@apply bg-slate-800/80 text-slate-50;
 }
+
+/* ---- search snippets ---------------------------------------------------- */
+.snippet mark {
+	@apply rounded bg-amber-500/25 px-0.5 text-amber-100;
+}

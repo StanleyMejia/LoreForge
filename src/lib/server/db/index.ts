@@ -39,4 +39,12 @@ function findMigrations(): string {
 
 migrate(db, { migrationsFolder: findMigrations() });
 
+// Populate the full-text index after an upgrade from a version without it.
+import('../repo/search').then(({ indexNeedsRebuild, rebuildIndex }) => {
+	if (indexNeedsRebuild()) {
+		console.log('[search] building full-text index');
+		rebuildIndex();
+	}
+});
+
 export { schema };

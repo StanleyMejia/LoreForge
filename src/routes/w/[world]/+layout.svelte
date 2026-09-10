@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import UserMenu from '$lib/components/UserMenu.svelte';
+	import SearchBox from '$lib/components/SearchBox.svelte';
 
 	let { data, children } = $props();
 	let open = $state(false);
@@ -44,15 +45,7 @@
 				{/if}
 			</div>
 
-			<form action="{base}/search" class="px-3 pt-3">
-				<input
-					class="input"
-					type="search"
-					name="q"
-					placeholder="Search world…"
-					value={page.url.searchParams.get('q') ?? ''}
-				/>
-			</form>
+			<SearchBox {base} initial={page.url.searchParams.get('q') ?? ''} />
 
 			<nav class="flex-1 overflow-y-auto px-2 py-3 text-sm">
 				<a href={base} class="nav {active(base, true) ? 'nav-active' : ''}"
