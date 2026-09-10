@@ -36,6 +36,13 @@
       "when": 1789019325844,
       "tag": "0004_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789019760740,
+      "tag": "0005_fts",
+      "breakpoints": true
     }
   ]
 }

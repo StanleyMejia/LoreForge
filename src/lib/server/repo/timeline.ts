@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { syncLinks } from './elements';
 import { touchWorld } from './worlds';
+import { indexEvent, removeFromIndex } from './search';
 
 const { events, links } = schema;
 
@@ -51,6 +52,7 @@ export function createEvent(worldId: string, input: EventInput) {
 		.returning()
 		.get();
 	syncLinks(worldId, 'event', row.id, row.body);
+	indexEvent(row);
 	touchWorld(worldId);
 	return row;
 }
@@ -69,12 +71,16 @@ export function updateEvent(worldId: string, id: string, input: EventInput) {
 		.where(and(eq(events.worldId, worldId), eq(events.id, id)))
 		.returning()
 		.get();
-	if (row) syncLinks(worldId, 'event', row.id, row.body);
+	if (row) {
+		syncLinks(worldId, 'event', row.id, row.body);
+		indexEvent(row);
+	}
 	touchWorld(worldId);
 	return row;
 }
 
 export function deleteEvent(worldId: string, id: string) {
+	removeFromIndex('event', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'event'), eq(links.sourceId, id)))
 		.run();

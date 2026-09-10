@@ -165,6 +165,22 @@
 	</section>
 
 	<section>
+		<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Search index</h2>
+		<form
+			method="POST"
+			action="?/rebuildIndex"
+			use:enhance
+			class="card flex items-center justify-between gap-4"
+		>
+			<p class="muted">
+				Full-text search is kept up to date automatically. Rebuild it if results look stale{#if form?.rebuilt}
+					· <span class="text-emerald-400">rebuilt</span>{/if}.
+			</p>
+			<button class="btn" type="submit">Rebuild index</button>
+		</form>
+	</section>
+
+	<section>
 		<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Backup</h2>
 		<div class="card flex items-center justify-between gap-4">
 			<p class="muted">Download everything in this world as a single JSON file.</p>

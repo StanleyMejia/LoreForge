@@ -14,6 +14,7 @@ import { parseJson, str } from '$lib/server/form';
 import { cleanPanels } from '$lib/server/panels';
 import { authConfig } from '$lib/server/auth/config';
 import { deleteUpload, listUploads } from '$lib/server/repo/uploads';
+import { rebuildIndex } from '$lib/server/repo/search';
 import {
 	createInvite,
 	isRole,
@@ -184,5 +185,11 @@ export const actions: Actions = {
 		if (!world) error(404);
 		for (const u of listUploads(world.id)) if (!u.referenced) await deleteUpload(world.id, u.id);
 		return { ok: true };
+	},
+	rebuildIndex: async ({ params }) => {
+		const world = getWorldBySlug(params.world);
+		if (!world) error(404);
+		rebuildIndex(world.id);
+		return { ok: true, rebuilt: true };
 	}
 };

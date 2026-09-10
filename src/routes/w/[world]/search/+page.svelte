@@ -1,8 +1,19 @@
 <script lang="ts">
 	import ElementCard from '$lib/components/ElementCard.svelte';
+	import { snippetHtml } from '$lib/snippet';
 
 	let { data } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
+	const labels = { element: 'Elements', chapter: 'Chapters', event: 'Timeline events' } as const;
+	const groups = $derived(
+		(['element', 'chapter', 'event'] as const)
+			.map((kind) => ({
+				kind,
+				label: labels[kind],
+				hits: data.hits.filter((h) => h.kind === kind)
+			}))
+			.filter((g) => g.hits.length)
+	);
 </script>
 
 <svelte:head><title>Search · {data.world.name}</title></svelte:head>
@@ -17,35 +28,51 @@
 		type="search"
 		name="q"
 		value={data.q}
-		placeholder="Names, summaries, notes, tags…"
+		placeholder="Names, notes, chapters, events…"
 	/>
 	<button class="btn" type="submit">Search</button>
 </form>
 
-{#if data.q || data.tag}
+{#if data.tag}
+	<p class="muted mb-4">{data.tagged.length} element{data.tagged.length === 1 ? '' : 's'}</p>
+	<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+		{#each data.tagged as el (el.id)}<ElementCard {base} {el} showType />{/each}
+	</div>
+{:else if data.q}
 	<p class="muted mb-4">
-		{data.results.length} element{data.results.length === 1 ? '' : 's'}{#if data.chapters.length}
-			· {data.chapters.length} chapter{data.chapters.length === 1 ? '' : 's'}{/if}
+		{data.hits.length} result{data.hits.length === 1 ? '' : 's'} for
+		<span class="text-slate-200">“{data.q}”</span>
+		{#if data.fallback}<span class="ml-2 text-amber-400"
+				>(simple match; the query could not be parsed for full-text search)</span
+			>{/if}
 	</p>
-	{#if data.results.length}
-		<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-			{#each data.results as el (el.id)}<ElementCard {base} {el} showType />{/each}
+	{#each groups as g (g.kind)}
+		<section class="mb-8" data-role="search-{g.kind}">
+			<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+				{g.label} · {g.hits.length}
+			</h2>
+			<ul class="space-y-2">
+				{#each g.hits as h (h.id)}
+					<li>
+						<a href={h.href} class="card block hover:border-slate-600">
+							<div class="flex items-baseline gap-2">
+								<span>{h.icon}</span>
+								<span class="font-semibold text-slate-50">{h.title}</span>
+								<span class="text-xs text-slate-500">{h.subtitle}</span>
+							</div>
+							{#if h.snippet.trim()}<p class="snippet muted mt-1 text-sm">
+									{@html snippetHtml(h.snippet)}
+								</p>{/if}
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{:else}
+		<div class="card">
+			<p class="muted">
+				Nothing matched. Try fewer or shorter words; prefixes match (e.g. <code>Yso</code>).
+			</p>
 		</div>
-	{/if}
-	{#if data.chapters.length}
-		<h2 class="mt-8 mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Chapters</h2>
-		<ul class="space-y-2">
-			{#each data.chapters as c (c.id)}
-				<li>
-					<a href="{base}/m/{c.manuscriptId}/c/{c.id}" class="card block hover:border-slate-600">
-						<div class="font-semibold">
-							📖 {c.title} <span class="muted font-normal">· {c.manuscriptTitle}</span>
-						</div>
-						{#if c.synopsis}<div class="muted mt-0.5 text-xs">{c.synopsis}</div>{/if}
-						<div class="mt-1 text-xs text-slate-500">{c.wordCount} words · {c.status}</div>
-					</a>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+	{/each}
 {/if}

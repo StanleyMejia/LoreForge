@@ -4,6 +4,7 @@ import { slugify } from '$lib/slug';
 import { extractWikiLinks } from '$lib/markdown';
 import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
+import { indexElement, removeFromIndex } from './search';
 
 const { elements, elementTypes, links, relationships } = schema;
 
@@ -134,6 +135,7 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 		.returning()
 		.get();
 	syncLinks(worldId, 'element', row.id, panelsText(row.panels));
+	indexElement(row);
 	touchWorld(worldId);
 	return row;
 }
@@ -159,11 +161,13 @@ export function updateElement(worldId: string, id: string, input: ElementInput) 
 		.returning()
 		.get();
 	syncLinks(worldId, 'element', row.id, panelsText(row.panels));
+	indexElement(row);
 	touchWorld(worldId);
 	return row;
 }
 
 export function deleteElement(id: string) {
+	removeFromIndex('element', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'element'), eq(links.sourceId, id)))
 		.run();

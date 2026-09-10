@@ -34,7 +34,9 @@ One Node process, one SQLite file, no external services.
   insert-at-cursor element search. Element pages show an "Appears in" list with roles,
   manuscripts get a cast summary and a continuous read-through view, timeline events show
   the chapters told there, and search covers chapters.
-- **Search & tags** across the whole world.
+- **Full-text search** (SQLite FTS5) across elements, chapters and timeline events with stemming,
+  prefix matching, ranked results and highlighted snippets; live suggestions in the sidebar. Tags
+  filter elements.
 - **Export** the entire world as a single JSON file.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
 - **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
@@ -219,7 +221,6 @@ Migrations run on boot, so a container restart upgrades the database.
 
 ## Roadmap ideas
 
-- Full-text search (SQLite FTS5)
 - Interactive maps with pins linked to locations
 - Multi-user auth (OIDC) for shared worlds
 - JSON import to restore an export
