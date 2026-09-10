@@ -87,24 +87,78 @@
 		<p class="muted mb-8">No worlds yet. Create your first one below.</p>
 	{/if}
 
-	<section class="card max-w-xl">
-		<h2 class="mb-3 text-base font-semibold">New world</h2>
-		<form method="POST" action="?/create" use:enhance class="space-y-3">
-			<div>
-				<label class="label" for="name">Name</label>
-				<input class="input" id="name" name="name" required placeholder="The Shattered Reach" />
-			</div>
-			<div>
-				<label class="label" for="description">Description</label>
-				<textarea
-					class="textarea"
-					id="description"
-					name="description"
-					rows="2"
-					placeholder="One line about this universe"></textarea>
-			</div>
-			{#if form?.error}<p class="text-sm text-red-400">{form.error}</p>{/if}
-			<button class="btn btn-primary" type="submit">Create world</button>
-		</form>
-	</section>
+	{#if form?.imported}
+		<section class="card mb-6 max-w-xl border-emerald-700/60" data-role="import-result">
+			<h2 class="mb-1 text-base font-semibold text-emerald-300">Imported “{form.imported.name}”</h2>
+			<p class="muted mb-2 text-sm">
+				{Object.entries(form.imported.counts)
+					.filter(([, n]) => n > 0)
+					.map(([k, n]) => `${n} ${k}`)
+					.join(' · ') || 'Empty world'}
+			</p>
+			{#each form.imported.warnings as w (w)}<p class="text-xs text-amber-400">{w}</p>{/each}
+			<a class="btn btn-primary mt-3" href="/w/{form.imported.slug}">Open {form.imported.name}</a>
+		</section>
+	{/if}
+
+	<div class="grid gap-6 sm:grid-cols-2">
+		<section class="card">
+			<h2 class="mb-3 text-base font-semibold">New world</h2>
+			<form method="POST" action="?/create" use:enhance class="space-y-3">
+				<div>
+					<label class="label" for="name">Name</label>
+					<input class="input" id="name" name="name" required placeholder="The Shattered Reach" />
+				</div>
+				<div>
+					<label class="label" for="description">Description</label>
+					<textarea
+						class="textarea"
+						id="description"
+						name="description"
+						rows="2"
+						placeholder="One line about this universe"></textarea>
+				</div>
+				{#if form?.error}<p class="text-sm text-red-400">{form.error}</p>{/if}
+				<button class="btn btn-primary" type="submit">Create world</button>
+			</form>
+		</section>
+
+		<section class="card" data-role="import-world">
+			<h2 class="mb-1 text-base font-semibold">Import a world</h2>
+			<p class="muted mb-3 text-xs">
+				Restore a world from an exported JSON file. It is always imported as a new world; nothing
+				existing is changed.
+			</p>
+			<form
+				method="POST"
+				action="?/import"
+				enctype="multipart/form-data"
+				use:enhance
+				class="space-y-3"
+			>
+				<div>
+					<label class="label" for="import-file">Export file</label>
+					<input
+						class="input"
+						id="import-file"
+						name="file"
+						type="file"
+						accept="application/json,.json"
+						required
+					/>
+				</div>
+				<div>
+					<label class="label" for="import-name">Name (optional)</label>
+					<input
+						class="input"
+						id="import-name"
+						name="name"
+						placeholder="Defaults to the exported name"
+					/>
+				</div>
+				{#if form?.importError}<p class="text-sm text-red-400">{form.importError}</p>{/if}
+				<button class="btn" type="submit">Import world</button>
+			</form>
+		</section>
+	</div>
 </div>

@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { existsSync, mkdirSync, rmSync, statSync, createReadStream } from 'node:fs';
+import { copyFileSync, createReadStream, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
@@ -89,4 +89,18 @@ export async function removeFile(storagePath: string) {
 export function removeWorldDir(worldId: string) {
 	const dir = absolutePath(worldId);
 	if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+}
+
+/**
+ * Copy a stored file into another world (used by import). Returns the new relative path,
+ * or null when the source file is missing (e.g. the uploads directory was not copied along).
+ */
+export function copyStored(sourcePath: string, worldId: string, id: string): string | null {
+	if (!fileExists(sourcePath)) return null;
+	const ext = sourcePath.includes('.') ? sourcePath.slice(sourcePath.lastIndexOf('.') + 1) : 'bin';
+	const rel = `${worldId}/${id}.${ext}`;
+	const abs = absolutePath(rel);
+	mkdirSync(dirname(abs), { recursive: true });
+	copyFileSync(absolutePath(sourcePath), abs);
+	return rel;
 }
