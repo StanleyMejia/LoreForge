@@ -1,5 +1,6 @@
 <script lang="ts">
 	import MarkdownEditor from './MarkdownEditor.svelte';
+	import ImageField from './ImageField.svelte';
 	import {
 		PANEL_KINDS,
 		blankPanel,
@@ -35,6 +36,7 @@
 		template = false,
 		excludeId
 	}: Props = $props();
+	const worldBase = $derived(elementBase.replace(/\/e\/?$/, ''));
 
 	let chooser = $state(false);
 	let editingTitle: string | null = $state(null);
@@ -382,13 +384,13 @@
 				{:else}
 					<div class="space-y-2">
 						{#each p.images as img, gi (gi)}
-							<div class="grid items-center gap-2 sm:grid-cols-[64px_1fr_1fr_auto]">
-								{#if img.url}<img
-										src={img.url}
-										alt=""
-										class="h-16 w-16 rounded object-cover"
-									/>{:else}<div class="h-16 w-16 rounded bg-slate-800"></div>{/if}
-								<input class="input" placeholder="https://… image URL" bind:value={img.url} />
+							<div class="grid items-center gap-2 sm:grid-cols-[1fr_1fr_auto]">
+								<ImageField
+									bind:value={img.url}
+									base={worldBase}
+									compact
+									placeholder="https://… or upload"
+								/>
 								<input class="input" placeholder="Caption" bind:value={img.caption} />
 								<button
 									type="button"

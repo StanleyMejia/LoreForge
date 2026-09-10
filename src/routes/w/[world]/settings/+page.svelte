@@ -101,6 +101,69 @@
 		</form>
 	</section>
 
+	<section data-role="storage">
+		<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Storage</h2>
+		<div class="card">
+			{#if data.uploads.length}
+				{@const total = data.uploads.reduce((n, u) => n + u.size, 0)}
+				{@const unused = data.uploads.filter((u) => !u.referenced).length}
+				<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+					<p class="muted">
+						{data.uploads.length} uploaded image{data.uploads.length === 1 ? '' : 's'} · {(
+							total / 1048576
+						).toFixed(1)} MB{#if unused}
+							· {unused} unused{/if}
+					</p>
+					{#if unused}
+						<form method="POST" action="?/deleteUnusedUploads" use:enhance>
+							<button class="btn btn-sm" type="submit">Delete unused</button>
+						</form>
+					{/if}
+				</div>
+				<ul class="divide-y divide-slate-800">
+					{#each data.uploads as u (u.id)}
+						<li class="flex items-center gap-3 py-2 text-sm">
+							<img
+								src="{base}/files/{u.id}"
+								alt=""
+								class="h-10 w-10 rounded object-cover"
+								loading="lazy"
+							/>
+							<div class="min-w-0 flex-1">
+								<div class="truncate text-slate-200">{u.filename}</div>
+								<div class="text-xs text-slate-500">
+									{u.mime} · {(u.size / 1024).toFixed(0)} KB{#if !u.referenced}
+										· <span class="text-amber-400">unused</span>{/if}
+								</div>
+							</div>
+							<input
+								class="input w-64 py-1 font-mono text-xs"
+								readonly
+								value="{base}/files/{u.id}"
+								onfocus={(e) => e.currentTarget.select()}
+							/>
+							<form
+								method="POST"
+								action="?/deleteUpload"
+								use:enhance
+								onsubmit={(e) => {
+									if (!confirm(`Delete ${u.filename}?`)) e.preventDefault();
+								}}
+							>
+								<input type="hidden" name="id" value={u.id} />
+								<button class="btn btn-ghost btn-sm text-red-300" type="submit">Delete</button>
+							</form>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="muted">
+					No uploaded images yet. Use the <em>Upload</em> button next to any image field.
+				</p>
+			{/if}
+		</div>
+	</section>
+
 	<section>
 		<h2 class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">Backup</h2>
 		<div class="card flex items-center justify-between gap-4">

@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { DEFAULT_TYPES } from '$lib/defaults';
 import { slugify } from '$lib/slug';
+import { removeWorldDir } from '../uploads';
 
 const { worlds, elementTypes, elements } = schema;
 
@@ -89,6 +90,7 @@ export function touchWorld(id: string) {
 
 export function deleteWorld(id: string) {
 	db.delete(worlds).where(eq(worlds.id, id)).run();
+	removeWorldDir(id);
 }
 
 // ---- element types -------------------------------------------------------
