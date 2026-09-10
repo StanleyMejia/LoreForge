@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { timeAgo } from '$lib/format';
+	import { page } from '$app/state';
+	import MapPanel from '$lib/components/MapPanel.svelte';
 	import { panelIcon, ROLE_LABELS } from '$lib/types';
 
 	let { data, form } = $props();
@@ -156,6 +158,14 @@
 								</li>
 							{/each}
 						</ul>
+					{:else if p.kind === 'map'}
+						<MapPanel
+							mode="view"
+							{base}
+							imageUrl={p.imageUrl}
+							pins={p.pins}
+							highlight={page.url.searchParams.get('pin') ?? ''}
+						/>
 					{:else if p.kind === 'gallery'}
 						<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 							{#each p.images as img (img.url)}
@@ -241,6 +251,24 @@
 					</details>
 				{/if}
 			</section>
+
+			{#if data.onMaps.length}
+				<section class="card" data-role="on-maps">
+					<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">On maps</h2>
+					<ul class="space-y-1 text-sm">
+						{#each data.onMaps as m (m.mapId + m.pinId)}
+							<li>
+								<a
+									href="{base}/e/{m.mapSlug}?pin={m.pinId}#panel-{m.panelId}"
+									class="text-slate-200 hover:text-amber-300"
+									>🗺️ {m.mapName}{#if m.label && m.label !== data.element.name}
+										<span class="text-slate-500">· {m.label}</span>{/if}</a
+								>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 
 			<section class="card" data-role="appearances">
 				<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import ImageField from './ImageField.svelte';
+	import MapPanel from './MapPanel.svelte';
 	import {
 		PANEL_KINDS,
 		blankPanel,
@@ -379,6 +380,14 @@
 						{/if}
 					</div>
 				{/if}
+			{:else if p.kind === 'map'}
+				{#if template}<p class="muted">An image with pins linked to elements.</p>
+				{:else}<MapPanel
+						mode="edit"
+						bind:panel={panels[i] as import('$lib/types').MapPanel}
+						{index}
+						base={worldBase}
+					/>{/if}
 			{:else if p.kind === 'gallery'}
 				{#if template}<p class="muted">Add images or image galleries.</p>
 				{:else}

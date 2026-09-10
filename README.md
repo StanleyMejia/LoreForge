@@ -16,6 +16,9 @@ One Node process, one SQLite file, no external services.
   - _Statistics_ – numeric values rendered as bars
   - _Links_ – curated connections to other elements with notes
   - _Images_ – galleries by URL
+- **Interactive maps** – a Map panel holds an image with draggable pins that link to any element.
+  Pan, zoom, hover for a tooltip, click a pin to open its element; linked elements show which maps
+  they appear on.
 - **Images** – upload PNG/JPEG/GIF/WebP straight from any image field; files live under
   `/data/uploads` (or `UPLOADS_DIR`) and are served only to members of the world. Settings shows
   storage usage and unused files.
@@ -221,6 +224,5 @@ Migrations run on boot, so a container restart upgrades the database.
 
 ## Roadmap ideas
 
-- Interactive maps with pins linked to locations
 - Multi-user auth (OIDC) for shared worlds
 - JSON import to restore an export

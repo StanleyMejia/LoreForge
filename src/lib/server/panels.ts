@@ -3,7 +3,8 @@ import { newId } from '$lib/types';
 import { slugify } from '$lib/slug';
 
 const FIELD_KINDS: FieldKind[] = ['text', 'textarea', 'number', 'select', 'element'];
-const PANEL_KINDS: PanelKind[] = ['info', 'text', 'list', 'stats', 'links', 'gallery'];
+const PANEL_KINDS: PanelKind[] = ['info', 'text', 'list', 'stats', 'links', 'gallery', 'map'];
+const IMAGE_URL = /^(https?:\/\/|\/|data:image\/)/i;
 
 const s = (v: unknown, max = 20000) => (typeof v === 'string' ? v.slice(0, max) : '');
 const n = (v: unknown, fallback = 0) => {
@@ -122,9 +123,39 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 									url: s(i?.url, 2000).trim(),
 									caption: s(i?.caption, 500).trim()
 								}))
-								.filter((i) => /^(https?:\/\/|\/|data:image\/)/i.test(i.url))
+								.filter((i) => IMAGE_URL.test(i.url))
 				});
 				break;
+			case 'map': {
+				const url = s(p.imageUrl, 2000).trim();
+				const seen = new Set<string>();
+				out.push({
+					id,
+					kind: 'map',
+					title,
+					imageUrl: IMAGE_URL.test(url) ? url : '',
+					pins: template
+						? []
+						: (Array.isArray(p.pins) ? p.pins : [])
+								.map((i: Record<string, unknown>) => {
+									let pid = s(i?.id, 40) || newId();
+									while (seen.has(pid)) pid = newId();
+									seen.add(pid);
+									const clamp = (v: unknown) => Math.min(1, Math.max(0, n(v, 0.5)));
+									const color = s(i?.color, 9).trim();
+									return {
+										id: pid,
+										x: clamp(i?.x),
+										y: clamp(i?.y),
+										label: s(i?.label, 120).trim(),
+										elementId: s(i?.elementId, 80),
+										color: /^#[0-9a-f]{6}$/i.test(color) ? color : '#f59e0b'
+									};
+								})
+								.slice(0, 500)
+				});
+				break;
+			}
 		}
 	}
 	return out;

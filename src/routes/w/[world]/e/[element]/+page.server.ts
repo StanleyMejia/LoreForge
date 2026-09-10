@@ -9,12 +9,13 @@ import {
 	getElement,
 	getElementById,
 	getElementsByIds,
-	relationshipsFor
+	relationshipsFor,
+	onMaps
 } from '$lib/server/repo/elements';
 import { makeResolver, renderMarkdown, type RenderContext } from '$lib/markdown';
 import { str } from '$lib/server/form';
 import { appearances } from '$lib/server/repo/manuscripts';
-import type { Panel } from '$lib/types';
+import type { MapPin, Panel } from '$lib/types';
 
 /** A panel prepared for display: markdown rendered, element refs resolved. */
 export type ViewPanel =
@@ -44,7 +45,12 @@ export type ViewPanel =
 			title: string;
 			links: { name: string; slug: string; icon: string; typeName: string; note: string }[];
 	  }
-	| { id: string; kind: 'gallery'; title: string; images: { url: string; caption: string }[] };
+	| { id: string; kind: 'gallery'; title: string; images: { url: string; caption: string }[] }
+	| { id: string; kind: 'map'; title: string; imageUrl: string; pins: ViewPin[] };
+
+export type ViewPin = MapPin & {
+	element: { name: string; slug: string; icon: string; summary: string } | null;
+};
 
 function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext): ViewPanel[] {
 	const refIds = new Set<string>();
@@ -53,6 +59,7 @@ function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext): ViewPa
 			for (const f of p.fields)
 				if (f.kind === 'element' && p.values[f.key]) refIds.add(p.values[f.key]);
 		if (p.kind === 'links') for (const l of p.links) refIds.add(l.elementId);
+		if (p.kind === 'map') for (const pin of p.pins) if (pin.elementId) refIds.add(pin.elementId);
 	}
 	const refs = new Map(getElementsByIds([...refIds]).map((e) => [e.id, e]));
 	const out: ViewPanel[] = [];
@@ -110,6 +117,24 @@ function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext): ViewPa
 				if (p.images.length)
 					out.push({ id: p.id, kind: 'gallery', title: p.title, images: p.images });
 				break;
+			case 'map':
+				if (p.imageUrl || p.pins.length)
+					out.push({
+						id: p.id,
+						kind: 'map',
+						title: p.title,
+						imageUrl: p.imageUrl,
+						pins: p.pins.map((pin) => {
+							const r = pin.elementId ? refs.get(pin.elementId) : undefined;
+							return {
+								...pin,
+								element: r
+									? { name: r.name, slug: r.slug, icon: r.typeIcon, summary: r.summary }
+									: null
+							};
+						})
+					});
+				break;
 		}
 	}
 	return out;
@@ -129,6 +154,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		relationships: relationshipsFor(element.id),
 		// chapter mentions are shown under "Appears in" instead
 		backlinks: backlinks(world.slug, element.id).filter((b) => b.kind !== 'chapter'),
+		onMaps: onMaps(element.id),
 		appearances: appearances(element.id)
 	};
 };
