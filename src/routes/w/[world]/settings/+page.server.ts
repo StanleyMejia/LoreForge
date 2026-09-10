@@ -13,6 +13,7 @@ import {
 import { parseJson, str } from '$lib/server/form';
 import { cleanPanels } from '$lib/server/panels';
 import { authConfig } from '$lib/server/auth/config';
+import { deleteUpload, listUploads } from '$lib/server/repo/uploads';
 import {
 	createInvite,
 	isRole,
@@ -29,6 +30,7 @@ export const load: PageServerLoad = async ({ parent, locals }) => {
 	const owner = role === 'owner';
 	return {
 		fullTypes: listTypes(world.id),
+		uploads: listUploads(world.id),
 		owner,
 		sharing:
 			authConfig.enabled && owner && locals.user
@@ -168,6 +170,19 @@ export const actions: Actions = {
 		if (!world) error(404);
 		const form = await request.formData();
 		revokeInvite(world.id, str(form, 'id'));
+		return { ok: true };
+	},
+	deleteUpload: async ({ params, request }) => {
+		const world = getWorldBySlug(params.world);
+		if (!world) error(404);
+		const form = await request.formData();
+		await deleteUpload(world.id, str(form, 'id'));
+		return { ok: true };
+	},
+	deleteUnusedUploads: async ({ params }) => {
+		const world = getWorldBySlug(params.world);
+		if (!world) error(404);
+		for (const u of listUploads(world.id)) if (!u.referenced) await deleteUpload(world.id, u.id);
 		return { ok: true };
 	}
 };

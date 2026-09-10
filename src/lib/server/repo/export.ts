@@ -3,6 +3,7 @@ import { db, schema } from '../db';
 import { listTypes } from './worlds';
 import { listEvents } from './timeline';
 import { allRelationships } from './elements';
+import { allUploads } from './uploads';
 
 /** Full portable snapshot of a world, suitable for backup or migration. */
 export function exportWorld(worldId: string) {
@@ -34,7 +35,7 @@ export function exportWorld(worldId: string) {
 					.all();
 	return {
 		format: 'loreforge-world',
-		version: 1,
+		version: 2,
 		exportedAt: new Date().toISOString(),
 		world,
 		types,
@@ -42,6 +43,20 @@ export function exportWorld(worldId: string) {
 		relationships: allRelationships(worldId),
 		events: listEvents(worldId),
 		manuscripts,
-		chapters
+		chapters,
+		chapterRefs:
+			chapters.length === 0
+				? []
+				: db
+						.select()
+						.from(schema.chapterRefs)
+						.where(
+							inArray(
+								schema.chapterRefs.chapterId,
+								chapters.map((c) => c.id)
+							)
+						)
+						.all(),
+		uploads: allUploads(worldId)
 	};
 }

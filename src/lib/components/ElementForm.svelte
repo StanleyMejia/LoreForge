@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import PanelEditor from './PanelEditor.svelte';
+	import ImageField from './ImageField.svelte';
 	import { panelsFromTemplate, type Panel } from '$lib/types';
 
 	interface TypeOpt {
@@ -137,12 +138,12 @@
 		</div>
 		<div>
 			<label class="label" for="imageUrl">Portrait / cover image URL</label>
-			<input
-				class="input"
+			<ImageField
+				bind:value={imageUrl}
+				{base}
 				id="imageUrl"
 				name="imageUrl"
-				bind:value={imageUrl}
-				placeholder="https://…"
+				placeholder="https://… or upload a portrait"
 			/>
 		</div>
 	</div>

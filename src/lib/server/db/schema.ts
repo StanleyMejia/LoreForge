@@ -284,3 +284,26 @@ export const worldInvites = sqliteTable(
 
 export type WorldMember = typeof worldMembers.$inferSelect;
 export type WorldInvite = typeof worldInvites.$inferSelect;
+
+// ---- uploaded files --------------------------------------------------------
+
+/** An image stored under UPLOADS_DIR, served at /w/<slug>/files/<id>. */
+export const uploads = sqliteTable(
+	'uploads',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		filename: text('filename').notNull(),
+		mime: text('mime').notNull(),
+		size: integer('size').notNull(),
+		/** Path relative to UPLOADS_DIR, e.g. `<worldId>/<id>.png`. */
+		storagePath: text('storage_path').notNull(),
+		createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: now()
+	},
+	(t) => [index('uploads_world').on(t.worldId)]
+);
+
+export type Upload = typeof uploads.$inferSelect;

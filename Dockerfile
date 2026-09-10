@@ -14,7 +14,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     DATABASE_URL=/data/loreforge.db \
     MIGRATIONS_DIR=/app/drizzle \
-    BODY_SIZE_LIMIT=10M
+    BODY_SIZE_LIMIT=25M
 WORKDIR /app
 RUN mkdir -p /data && chown node:node /data
 COPY --from=build --chown=node:node /app/build ./build

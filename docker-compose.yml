@@ -15,6 +15,8 @@ services:
       # Behind a reverse proxy (Traefik, Caddy, nginx, NPM) uncomment these two:
       # PROTOCOL_HEADER: x-forwarded-proto
       # HOST_HEADER: x-forwarded-host
+      # --- Uploads. Images are stored under /data/uploads (inside the volume).
+      # MAX_UPLOAD_MB: 10                          # per-file limit; BODY_SIZE_LIMIT (25M) must stay above it
       # --- Single sign-on (optional). Leave unset for an open instance on a trusted LAN.
       # OIDC_ISSUER: https://id.example.lan          # Pocket ID base URL
       # OIDC_CLIENT_ID: loreforge

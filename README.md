@@ -16,6 +16,9 @@ One Node process, one SQLite file, no external services.
   - _Statistics_ – numeric values rendered as bars
   - _Links_ – curated connections to other elements with notes
   - _Images_ – galleries by URL
+- **Images** – upload PNG/JPEG/GIF/WebP straight from any image field; files live under
+  `/data/uploads` (or `UPLOADS_DIR`) and are served only to members of the world. Settings shows
+  storage usage and unused files.
 - **Wiki links & backlinks** – write `[[Name]]` anywhere; every element shows what mentions it.
   Unknown names become red links that create the element with one click.
 - **Relationships** – labelled, directional edges (`mentor of` / `student of`) plus a
@@ -66,7 +69,8 @@ docker compose up -d
 # → http://localhost:3000
 ```
 
-The database lives in the `loreforge-data` named volume (`/data/loreforge.db`, WAL mode).
+The database lives in the `loreforge-data` named volume (`/data/loreforge.db`, WAL mode) next to
+uploaded images (`/data/uploads/<worldId>/`).
 Back it up with `docker run --rm -v loreforge-data:/data -v "$PWD":/backup alpine tar czf
 /backup/loreforge-data.tgz -C /data .`, or use the in-app JSON export. To use a bind mount
 instead, see the comments in the compose file (the container runs as uid 1000).
@@ -90,7 +94,9 @@ Configuration is all environment variables:
 | `ORIGIN`                         | –                    | Public origin; form actions are rejected without it |
 | `PORT`                           | `3000`               | Listen port inside the container                    |
 | `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                    |
-| `BODY_SIZE_LIMIT`                | `10M`                | Max request body (long chapters, big panels)        |
+| `BODY_SIZE_LIMIT`                | `25M`                | Max request body (uploads, long chapters)           |
+| `UPLOADS_DIR`                    | `<db dir>/uploads`   | Where uploaded images are stored                    |
+| `MAX_UPLOAD_MB`                  | `10`                 | Per-file upload limit                               |
 | `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                 |
 
 ### Single sign-on with Pocket ID (or any OIDC provider)
@@ -213,7 +219,6 @@ Migrations run on boot, so a container restart upgrades the database.
 
 ## Roadmap ideas
 
-- Image uploads to local storage instead of URLs
 - Full-text search (SQLite FTS5)
 - Interactive maps with pins linked to locations
 - Multi-user auth (OIDC) for shared worlds
