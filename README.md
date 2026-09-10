@@ -40,7 +40,7 @@ One Node process, one SQLite file, no external services.
 - **Full-text search** (SQLite FTS5) across elements, chapters and timeline events with stemming,
   prefix matching, ranked results and highlighted snippets; live suggestions in the sidebar. Tags
   filter elements.
-- **Export** the entire world as a single JSON file.
+- **Export and import** – download a world as one JSON file and restore it as a new world.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
 - **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
 
@@ -88,6 +88,15 @@ echo "$GHCR_TOKEN" | docker login ghcr.io -u StanleyMejia --password-stdin
 ```
 
 Alternatively make the package public under your profile's Packages settings.
+
+### Backup and restore
+
+Export a world from **Settings → Backup** (or `/w/<world>/export`) and keep the JSON file. Uploaded
+images live outside it, under `/data/uploads/<worldId>/`, so copy that directory too if you want the
+pictures back. To restore, use **Import a world** on the worlds page: the file is always restored as
+a _new_ world, with every id reissued and every cross-reference rewritten, so importing never
+touches what you already have. Images resolve when their `uploads` directory was copied across;
+anything missing is reported after the import.
 
 Behind a reverse proxy, set `ORIGIN` to the public URL (e.g. `https://lore.example.lan`) and
 uncomment `PROTOCOL_HEADER` / `HOST_HEADER`.
@@ -224,5 +233,8 @@ Migrations run on boot, so a container restart upgrades the database.
 
 ## Roadmap ideas
 
-- Multi-user auth (OIDC) for shared worlds
-- JSON import to restore an export
+- Revision history for chapters and elements
+- Per-panel comments for co-writers on a shared world
+- Nested locations shown as a tree, and pins that drill into child maps
+- EPUB / DOCX export of a manuscript
+- Offline-friendly editing with conflict resolution
