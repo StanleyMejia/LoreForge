@@ -4,6 +4,7 @@ import { slugify, uniquify } from './lib/slug.ts';
 import { num, str } from './lib/server/coerce.ts';
 import { MAX_REVISIONS, prunable, REVISION_WINDOW_MS, revisionDue } from './lib/revisions.ts';
 import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
+import { diffBlocks, diffWords } from './lib/diff.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -97,5 +98,55 @@ const orphan = buildTree([node('b', 'missing')]);
 assert.equal(orphan.length, 1, 'an absent parent makes the child a root');
 assert.deepEqual(buildTree([node('x', 'y'), node('y', 'x')]), [], 'a cycle renders nothing');
 assert.equal(buildTree([node('s', 's')]).length, 1, 'a self-parent stays a root, not a loop');
+
+// --- word diff ---
+const text = (cs: { type: string; text: string }[]) => cs.map((c) => c.text).join('');
+assert.deepEqual(diffWords('a b', 'a b'), [{ type: 'same', text: 'a b' }], 'identical is one run');
+// Reconstructing either side from the chunks must give back the original, exactly.
+for (const [a, b] of [
+	['the warlord rode north', 'the warlord rode south'],
+	['', 'all new text'],
+	['everything removed', ''],
+	['one two three four', 'one three five']
+]) {
+	const cs = diffWords(a, b);
+	assert.equal(text(cs.filter((c) => c.type !== 'add')), a, `left rebuilds: ${a}`);
+	assert.equal(text(cs.filter((c) => c.type !== 'del')), b, `right rebuilds: ${b}`);
+}
+// An edit inside a sentence must stay an edit, not a wholesale replacement.
+const sw = diffWords('the warlord rode north', 'the warlord rode south');
+assert.equal(sw.filter((c) => c.type === 'same').length > 0, true, 'shared words stay shared');
+assert.deepEqual(
+	sw.filter((c) => c.type !== 'same').map((c) => [c.type, c.text.trim()]),
+	[
+		['del', 'north'],
+		['add', 'south']
+	],
+	'only the changed word is marked'
+);
+
+// --- block diff: the reason this is two-level and not a line diff ---
+const before = 'First para, untouched.\n\nSecond para, the warlord rode north.';
+const after = 'First para, untouched.\n\nSecond para, the warlord rode south.';
+const blocks = diffBlocks(before, after);
+assert.equal(blocks.length, 2, 'one block per paragraph');
+assert.equal(blocks[0].type, 'same', 'an untouched paragraph is not reported as changed');
+assert.equal(blocks[1].type, 'edit', 'an edited paragraph refines to word level');
+assert.deepEqual(
+	blocks[1].type === 'edit'
+		? blocks[1].words.filter((c) => c.type !== 'same').map((c) => c.text.trim())
+		: [],
+	['north.', 'south.'],
+	'and names only the words that moved (punctuation travels with its word)'
+);
+// A wholly different paragraph is an add plus a delete, not a nonsensical word soup.
+const swapped = diffBlocks('Alpha beta gamma.', 'Nothing whatsoever alike here.');
+assert.deepEqual(
+	swapped.map((b) => b.type),
+	['del', 'add'],
+	'dissimilar paragraphs are not merged'
+);
+assert.deepEqual(diffBlocks('same', 'same'), [{ type: 'same', text: 'same' }]);
+assert.deepEqual(diffBlocks('', ''), [], 'empty documents diff to nothing');
 
 console.log('selfcheck ok');

@@ -79,3 +79,11 @@ body {
 .snippet mark {
 	@apply rounded bg-amber-500/25 px-0.5 text-amber-100;
 }
+
+/* Inline diff marks inside rendered prose. */
+.md ins {
+	@apply rounded bg-emerald-500/15 text-emerald-200 no-underline;
+}
+.md del {
+	@apply rounded bg-red-500/15 text-red-300;
+}

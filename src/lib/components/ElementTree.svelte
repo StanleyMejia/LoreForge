@@ -9,7 +9,17 @@
 		typeIcon: string;
 		parentId?: string | null;
 	}
-	let { items, base }: { items: Item[]; base: string } = $props();
+	let {
+		items,
+		base,
+		matched
+	}: {
+		items: Item[];
+		base: string;
+		/** When filtering: the ids that actually matched. Others are context and stay muted. */
+		matched?: Set<string>;
+	} = $props();
+	const dim = $derived((id: string) => !!matched?.size && !matched.has(id));
 
 	// A parent outside `items` (another type, or filtered out) leaves its child at the top level.
 	const roots = $derived(buildTree(items));
@@ -18,7 +28,9 @@
 {#snippet label(item: Item)}
 	<a href="{base}/e/{item.slug}" class="group inline-flex items-baseline gap-2 py-1">
 		<span class="opacity-70">{item.typeIcon}</span>
-		<span class="text-slate-200 group-hover:text-amber-300">{item.name}</span>
+		<span class="group-hover:text-amber-300 {dim(item.id) ? 'text-slate-500' : 'text-slate-200'}"
+			>{item.name}</span
+		>
 		{#if item.summary}
 			<span class="muted hidden truncate text-xs sm:inline">{item.summary}</span>
 		{/if}

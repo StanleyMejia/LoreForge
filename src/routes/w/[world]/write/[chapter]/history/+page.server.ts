@@ -4,6 +4,7 @@ import { getChapterInWorld, updateChapter } from '$lib/server/repo/manuscripts';
 import { getRevision, listRevisions, saveRevision } from '$lib/server/repo/revisions';
 import { getEvent } from '$lib/server/repo/timeline';
 import { makeResolver, renderMarkdown } from '$lib/markdown';
+import { diffBlocks } from '$lib/diff';
 import { str } from '$lib/server/form';
 import { str as coerce } from '$lib/server/coerce';
 
@@ -41,12 +42,31 @@ export const load: PageServerLoad = async ({ params, url, parent }) => {
 				}
 			: null;
 
+	// `vs` turns the view into a comparison: against the live text, or against another version.
+	const vs = url.searchParams.get('vs');
+	const other =
+		!shown || !vs
+			? null
+			: vs === 'current'
+				? { body: chapter.body, at: chapter.updatedAt, current: true }
+				: (() => {
+						const r = getRevision(world.id, vs);
+						if (!r || r.kind !== 'chapter' || r.docId !== chapter.id) return null;
+						return { body: readContent(r.content).body, at: r.createdAt, current: false };
+					})();
+
 	return {
 		chapter: { id: chapter.id, manuscriptId: chapter.manuscriptId, title: chapter.title },
+		diff:
+			shown && other
+				? { blocks: diffBlocks(shown.body, other.body), at: other.at, current: other.current }
+				: null,
 		// Sizes come back as bytes; the list shows each revision's change against the next older one.
 		revisions: revisions.map((r, i) => ({
 			...r,
-			delta: r.bytes - (revisions[i + 1]?.bytes ?? r.bytes)
+			delta: r.bytes - (revisions[i + 1]?.bytes ?? r.bytes),
+			// The list is newest first, so the next entry is the version before this one.
+			prevId: revisions[i + 1]?.id ?? null
 		})),
 		shown: shown && {
 			...shown,
