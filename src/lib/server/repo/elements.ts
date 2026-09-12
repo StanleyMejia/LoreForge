@@ -5,6 +5,7 @@ import { extractWikiLinks } from '$lib/markdown';
 import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
 import { indexElement, removeFromIndex } from './search';
+import { deleteRevisions, maybeRevision } from './revisions';
 
 const { elements, elementTypes, links, relationships, mapPins } = schema;
 
@@ -138,21 +139,55 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 	return row;
 }
 
-export function updateElement(worldId: string, id: string, input: ElementInput) {
+export function updateElement(
+	worldId: string,
+	id: string,
+	input: ElementInput,
+	authorId: string | null = null
+) {
 	const existing = getElementById(id);
 	if (!existing) return undefined;
 	const name = input.name.trim();
 	const slug = name === existing.name ? existing.slug : uniqueSlug(worldId, name, id);
+	const summary = input.summary ?? existing.summary;
+	const panels = input.panels ?? existing.panels;
+	const tags = input.tags ?? existing.tags;
+	const imageUrl = input.imageUrl ?? existing.imageUrl;
+	const typeId = input.typeId ?? existing.typeId;
+	// cleanPanels canonicalises panels on every write, so their JSON is byte-comparable.
+	if (
+		name === existing.name &&
+		summary === existing.summary &&
+		JSON.stringify(panels) === JSON.stringify(existing.panels) &&
+		JSON.stringify(tags) === JSON.stringify(existing.tags) &&
+		imageUrl === existing.imageUrl &&
+		typeId === existing.typeId
+	)
+		return existing;
+	maybeRevision({
+		worldId,
+		kind: 'element',
+		docId: id,
+		title: existing.name,
+		authorId,
+		content: JSON.stringify({
+			summary: existing.summary,
+			panels: existing.panels,
+			tags: existing.tags,
+			imageUrl: existing.imageUrl,
+			typeId: existing.typeId
+		})
+	});
 	const row = db
 		.update(elements)
 		.set({
 			name,
 			slug,
-			summary: input.summary ?? existing.summary,
-			panels: input.panels ?? existing.panels,
-			tags: input.tags ?? existing.tags,
-			imageUrl: input.imageUrl ?? existing.imageUrl,
-			typeId: input.typeId ?? existing.typeId,
+			summary,
+			panels,
+			tags,
+			imageUrl,
+			typeId,
 			updatedAt: new Date()
 		})
 		.where(eq(elements.id, id))
@@ -168,6 +203,7 @@ export function updateElement(worldId: string, id: string, input: ElementInput) 
 export function deleteElement(id: string) {
 	db.delete(mapPins).where(eq(mapPins.mapElementId, id)).run();
 	removeFromIndex('element', id);
+	deleteRevisions('element', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'element'), eq(links.sourceId, id)))
 		.run();

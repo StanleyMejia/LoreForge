@@ -2,7 +2,7 @@ import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { removeFile, storeFile } from '../uploads';
 
-const { uploads, elements, events, chapters, manuscripts } = schema;
+const { uploads, elements, events, chapters, manuscripts, revisions } = schema;
 
 export async function createUpload(input: {
 	worldId: string;
@@ -85,6 +85,12 @@ export function listUploads(worldId: string): UploadUsage[] {
 				.from(chapters)
 				.innerJoin(manuscripts, eq(manuscripts.id, chapters.manuscriptId))
 				.where(and(eq(manuscripts.worldId, worldId), sql`${chapters.body} like ${needle}`))
+				.get() ||
+			// A revision pins the images it preserves; pruning the revision releases them again.
+			!!db
+				.select({ id: revisions.id })
+				.from(revisions)
+				.where(and(eq(revisions.worldId, worldId), sql`${revisions.content} like ${needle}`))
 				.get();
 		return {
 			id: u.id,

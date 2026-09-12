@@ -322,3 +322,34 @@ export const mapPins = sqliteTable(
 	},
 	(t) => [index('map_pins_element').on(t.elementId), index('map_pins_map').on(t.mapElementId)]
 );
+
+// ---- revision history -----------------------------------------------------
+
+/**
+ * Content as it was *before* a save, for chapters and elements. `docId` is polymorphic and
+ * has no foreign key (like `links.sourceId`), so the delete paths clean these up by hand.
+ * `content` is a JSON string rather than a json column: its shape varies by kind, the list
+ * query reads only `length(content)`, and the upload GC matches it with `like`.
+ */
+export const revisions = sqliteTable(
+	'revisions',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		/** 'chapter' | 'element' */
+		kind: text('kind').notNull(),
+		docId: text('doc_id').notNull(),
+		/** Chapter title or element name as it was then. */
+		title: text('title').notNull().default(''),
+		content: text('content').notNull(),
+		/** Non-empty means the user pinned this version; pinned rows are never pruned. */
+		label: text('label').notNull().default(''),
+		authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+		createdAt: now()
+	},
+	(t) => [index('revisions_doc').on(t.docId, t.createdAt), index('revisions_world').on(t.worldId)]
+);
+
+export type Revision = typeof revisions.$inferSelect;

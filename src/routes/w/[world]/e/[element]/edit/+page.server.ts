@@ -22,7 +22,12 @@ export const actions: Actions = {
 		if (!type || type.worldId !== world.id) return fail(400, { error: 'Invalid type.' });
 		const input = readElementInput(form);
 		if (!input.name) return fail(400, { error: 'Name is required.' });
-		const updated = updateElement(world.id, el.id, { ...input, typeId: type.id });
+		const updated = updateElement(
+			world.id,
+			el.id,
+			{ ...input, typeId: type.id },
+			locals.user?.id ?? null
+		);
 		redirect(303, `/w/${world.slug}/e/${updated?.slug ?? el.slug}`);
 	}
 };

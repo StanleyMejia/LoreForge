@@ -30,13 +30,19 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 	const title = str(payload.title, 300).trim();
 	if (!title) error(400, 'Title is required');
 	const eventId = str(payload.eventId, 80);
-	const saved = updateChapter(world.id, chapter.manuscriptId, chapter.id, {
-		title,
-		synopsis: str(payload.synopsis, 2000).trim(),
-		body: str(payload.body, 2_000_000),
-		status: str(payload.status, 20),
-		eventId: eventId && getEvent(world.id, eventId) ? eventId : null
-	});
+	const saved = updateChapter(
+		world.id,
+		chapter.manuscriptId,
+		chapter.id,
+		{
+			title,
+			synopsis: str(payload.synopsis, 2000).trim(),
+			body: str(payload.body, 2_000_000),
+			status: str(payload.status, 20),
+			eventId: eventId && getEvent(world.id, eventId) ? eventId : null
+		},
+		locals.user?.id ?? null
+	);
 	const refs: RefInput[] = (Array.isArray(payload.refs) ? payload.refs : [])
 		.map((r: Record<string, unknown>) => ({
 			elementId: str(r?.elementId, 80),

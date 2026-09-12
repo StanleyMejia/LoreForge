@@ -4,6 +4,7 @@ import { countWords } from '$lib/slug';
 import { syncLinks } from './elements';
 import { touchWorld } from './worlds';
 import { indexChapter, removeFromIndex } from './search';
+import { deleteRevisions, maybeRevision } from './revisions';
 import { CHAPTER_ROLES, CHAPTER_STATUSES, type ChapterRole, type ChapterStatus } from '$lib/types';
 
 const { manuscripts, chapters, links } = schema;
@@ -64,6 +65,7 @@ export function deleteManuscript(id: string) {
 			.where(and(eq(links.sourceKind, 'chapter'), eq(links.sourceId, cid)))
 			.run();
 		removeFromIndex('chapter', cid);
+		deleteRevisions('chapter', cid);
 	}
 	db.delete(manuscripts).where(eq(manuscripts.id, id)).run();
 }
@@ -118,21 +120,54 @@ export function updateChapter(
 	worldId: string,
 	manuscriptId: string,
 	id: string,
-	input: ChapterInput
+	input: ChapterInput,
+	authorId: string | null = null
 ) {
+	const before = db
+		.select()
+		.from(chapters)
+		.where(and(eq(chapters.manuscriptId, manuscriptId), eq(chapters.id, id)))
+		.get();
+	if (!before) return undefined;
 	const status: ChapterStatus = (CHAPTER_STATUSES as readonly string[]).includes(input.status ?? '')
 		? (input.status as ChapterStatus)
 		: 'draft';
+	const title = input.title.trim();
+	const synopsis = input.synopsis ?? '';
 	const body = input.body ?? '';
+	const eventId = input.eventId ?? null;
+	// Autosave re-sends the whole payload whenever anything changes, references included.
+	// An identical body is not an edit: no revision, no re-derive, no timestamps.
+	if (
+		before.title === title &&
+		before.synopsis === synopsis &&
+		before.body === body &&
+		before.status === status &&
+		before.eventId === eventId
+	)
+		return before;
+	maybeRevision({
+		worldId,
+		kind: 'chapter',
+		docId: id,
+		title: before.title,
+		authorId,
+		content: JSON.stringify({
+			synopsis: before.synopsis,
+			body: before.body,
+			status: before.status,
+			eventId: before.eventId
+		})
+	});
 	const row = db
 		.update(chapters)
 		.set({
-			title: input.title.trim(),
-			synopsis: input.synopsis ?? '',
+			title,
+			synopsis,
 			body,
 			status,
 			wordCount: countWords(body),
-			eventId: input.eventId ?? null,
+			eventId,
 			updatedAt: new Date()
 		})
 		.where(and(eq(chapters.manuscriptId, manuscriptId), eq(chapters.id, id)))
@@ -152,6 +187,7 @@ export function updateChapter(
 
 export function deleteChapter(manuscriptId: string, id: string) {
 	removeFromIndex('chapter', id);
+	deleteRevisions('chapter', id);
 	db.delete(links)
 		.where(and(eq(links.sourceKind, 'chapter'), eq(links.sourceId, id)))
 		.run();
