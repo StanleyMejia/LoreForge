@@ -166,11 +166,28 @@ export function claimPendingShares(userId: string, email: string) {
 
 // ---- invite links -----------------------------------------------------------
 
-export function createInvite(worldId: string, role: WorldRole, createdBy: string, days = 7) {
+/**
+ * An invite link is a bearer credential: whoever holds it gets the role. `maxUses` bounds the
+ * damage if one leaks into a chat log or a screenshot. Null means no limit, which is what rows
+ * created before this column existed keep.
+ */
+export function createInvite(
+	worldId: string,
+	role: WorldRole,
+	createdBy: string,
+	days = 7,
+	maxUses: number | null = 1
+) {
 	if (role === 'owner') role = 'editor';
 	return db
 		.insert(worldInvites)
-		.values({ worldId, role, createdBy, expiresAt: new Date(Date.now() + days * 86_400_000) })
+		.values({
+			worldId,
+			role,
+			createdBy,
+			maxUses,
+			expiresAt: new Date(Date.now() + days * 86_400_000)
+		})
 		.returning()
 		.get();
 }
@@ -201,6 +218,8 @@ export function acceptInvite(
 			id: worldInvites.id,
 			worldId: worldInvites.worldId,
 			role: worldInvites.role,
+			uses: worldInvites.uses,
+			maxUses: worldInvites.maxUses,
 			slug: worlds.slug
 		})
 		.from(worldInvites)
@@ -208,6 +227,7 @@ export function acceptInvite(
 		.where(and(eq(worldInvites.id, token), gt(worldInvites.expiresAt, new Date())))
 		.get();
 	if (!inv) return null;
+	if (inv.maxUses !== null && inv.uses >= inv.maxUses) return null;
 	const current = roleFor(inv.worldId, userId);
 	const rank: Record<WorldRole, number> = { viewer: 0, editor: 1, owner: 2 };
 	if (!current) {

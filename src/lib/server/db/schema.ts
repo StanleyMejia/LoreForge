@@ -285,6 +285,8 @@ export const worldInvites = sqliteTable(
 		createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
 		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
 		uses: integer('uses').notNull().default(0),
+		/** How many times the link may be redeemed. Null means no limit. */
+		maxUses: integer('max_uses'),
 		createdAt: now()
 	},
 	(t) => [index('world_invites_world').on(t.worldId)]

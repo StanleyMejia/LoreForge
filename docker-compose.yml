@@ -14,9 +14,11 @@ services:
     environment:
       # Public URL you reach the app on. Required for form submissions to be accepted.
       ORIGIN: http://localhost:3000
-      # Behind a reverse proxy (Traefik, Caddy, nginx, NPM) uncomment these two:
+      # Behind a reverse proxy (Traefik, Caddy, nginx, NPM) uncomment these three. ADDRESS_HEADER
+      # is what keys sign-in rate limits per client; without it every visitor counts as the proxy.
       # PROTOCOL_HEADER: x-forwarded-proto
       # HOST_HEADER: x-forwarded-host
+      # ADDRESS_HEADER: x-forwarded-for
       # --- Uploads. Images are stored under /data/uploads (inside the volume).
       # MAX_UPLOAD_MB: 10                          # per-file limit; BODY_SIZE_LIMIT (25M) must stay above it
       # --- Single sign-on (optional). Leave unset for an open instance on a trusted LAN.

@@ -58,6 +58,8 @@ One Node process, one SQLite file, no external services.
   chapter starts a new page.
 - **Export and import** – download a world as one JSON file and restore it as a new world.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
+- **Hardened by default** – a content security policy with per-response script nonces, frames
+  denied, rate limits on sign-in and on writes, and a per-world image allowance.
 - **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
 
 ## Writing
@@ -120,19 +122,24 @@ anything missing is reported after the import. Revision history is not part of t
 restored world starts with a clean history and keeps only its current content.
 
 Behind a reverse proxy, set `ORIGIN` to the public URL (e.g. `https://lore.example.lan`) and
-uncomment `PROTOCOL_HEADER` / `HOST_HEADER`.
+uncomment `PROTOCOL_HEADER` / `HOST_HEADER` / `ADDRESS_HEADER`. The last one matters for more than
+logs: sign-in is rate limited per client address, and without it every visitor counts as the proxy.
+The app warns at boot if the other two are set and it is not.
 
 Configuration is all environment variables:
 
-| Variable                         | Default              | Purpose                                             |
-| -------------------------------- | -------------------- | --------------------------------------------------- |
-| `ORIGIN`                         | –                    | Public origin; form actions are rejected without it |
-| `PORT`                           | `3000`               | Listen port inside the container                    |
-| `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                    |
-| `BODY_SIZE_LIMIT`                | `25M`                | Max request body (uploads, long chapters)           |
-| `UPLOADS_DIR`                    | `<db dir>/uploads`   | Where uploaded images are stored                    |
-| `MAX_UPLOAD_MB`                  | `10`                 | Per-file upload limit                               |
-| `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                 |
+| Variable                         | Default              | Purpose                                                                                                            |
+| -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ORIGIN`                         | –                    | Public origin; form actions are rejected without it                                                                |
+| `PORT`                           | `3000`               | Listen port inside the container                                                                                   |
+| `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                                                                                   |
+| `BODY_SIZE_LIMIT`                | `25M`                | Max request body (uploads, long chapters)                                                                          |
+| `UPLOADS_DIR`                    | `<db dir>/uploads`   | Where uploaded images are stored                                                                                   |
+| `MAX_UPLOAD_MB`                  | `10`                 | Per-file upload limit                                                                                              |
+| `MAX_WORLD_UPLOAD_MB`            | `2048`               | Total image bytes one world may hold; `0` for no limit                                                             |
+| `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                                                                                |
+| `ADDRESS_HEADER`                 | –                    | Header carrying the real client address behind a proxy; without it sign-in rate limits are shared by every visitor |
+| `XFF_DEPTH`                      | `1`                  | How many proxies sit in front, when `ADDRESS_HEADER` is `x-forwarded-for`                                          |
 
 ### Single sign-on with Pocket ID (or any OIDC provider)
 
@@ -173,8 +180,10 @@ Owners share a world from **Settings → Sharing**, either by email or with an i
 
 - **By email**: the share is pending until that person signs in for the first time with the
   same email; it attaches automatically.
-- **Invite links** (`/invite/<token>`): carry a role and an expiry (1–90 days), can be revoked,
-  and count their uses. Opening one while signed in adds you to the world.
+- **Invite links** (`/invite/<token>`): carry a role, an expiry (1–90 days) and a redemption
+  limit — one use by default, `0` for no limit. A link is a bearer credential, so the limit is
+  what bounds the damage if it ends up in a chat log. They can be revoked, and the list shows how
+  many of the allowed uses are spent. Opening one while signed in adds you to the world.
 - Worlds created before sign-in was enabled show up as **Unclaimed** on the worlds page for
   every user; the first person to claim one becomes its owner.
 

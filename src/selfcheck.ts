@@ -6,6 +6,7 @@ import { MAX_REVISIONS, prunable, REVISION_WINDOW_MS, revisionDue } from './lib/
 import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
 import { diffBlocks, diffWords } from './lib/diff.ts';
 import { xml, zip } from './lib/server/zip.ts';
+import { hit, sweep, type Window } from './lib/server/ratelimit.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -179,5 +180,30 @@ assert.equal(
 assert.equal(zip([]).length, 22, 'an empty archive is just the end record');
 
 assert.equal(xml('a & b < c > "d" \'e\''), 'a &amp; b &lt; c &gt; &quot;d&quot; &apos;e&apos;');
+
+// --- rate limiting ---
+const buckets = new Map<string, Window>();
+// Three of a limit of three are allowed; the fourth is not.
+for (let i = 1; i <= 3; i++)
+	assert.equal(hit(buckets, 'a', 3, 1000, 1000).ok, true, `request ${i} of 3 allowed`);
+const over = hit(buckets, 'a', 3, 1000, 1000);
+assert.equal(over.ok, false, 'the fourth is refused');
+assert.equal(over.retryAfter, 1, 'and says how long to wait, in whole seconds');
+// Different keys must not share an allowance, or one client could lock out another.
+assert.equal(hit(buckets, 'b', 3, 1000, 1000).ok, true, 'a different key has its own window');
+// The window reopens once it has elapsed.
+assert.equal(hit(buckets, 'a', 3, 1000, 2000).ok, true, 'the window resets');
+assert.equal(hit(buckets, 'a', 3, 1000, 2001).ok, true, 'and starts counting again');
+// retryAfter never rounds down to zero, which would invite an immediate retry.
+const tight = new Map<string, Window>();
+hit(tight, 'k', 1, 1000, 0);
+assert.equal(hit(tight, 'k', 1, 1000, 999).retryAfter, 1, 'retryAfter is at least one second');
+// Sweeping must drop only what has expired, so the store cannot grow without bound.
+const aged = new Map<string, Window>([
+	['old', { count: 9, resetAt: 500 }],
+	['live', { count: 1, resetAt: 5000 }]
+]);
+sweep(aged, 1000);
+assert.deepEqual([...aged.keys()], ['live'], 'sweep drops expired windows only');
 
 console.log('selfcheck ok');

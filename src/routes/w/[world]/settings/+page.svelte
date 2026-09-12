@@ -280,7 +280,11 @@
 										onfocus={(e) => e.currentTarget.select()}
 									/>
 									<span class="text-xs text-slate-500"
-										>expires {new Date(inv.expiresAt).toLocaleDateString()} · used {inv.uses}×</span
+										>expires {new Date(inv.expiresAt).toLocaleDateString()} · used {inv.uses}{inv.maxUses
+											? `/${inv.maxUses}`
+											: ''}×{#if inv.maxUses && inv.uses >= inv.maxUses}
+											<span class="text-red-300">spent</span>
+										{/if}</span
 									>
 									<form method="POST" action="?/revokeInvite" use:enhance>
 										<input type="hidden" name="id" value={inv.id} />
@@ -309,7 +313,19 @@
 							max="90"
 							value="7"
 						/>
-						<span class="muted text-xs">days</span>
+						<span class="muted text-xs">days,</span>
+						<label class="muted text-xs" for="inv-uses">usable</label>
+						<input
+							class="input w-20"
+							id="inv-uses"
+							name="maxUses"
+							type="number"
+							min="0"
+							max="100"
+							value="1"
+							title="How many people may redeem this link. 0 means no limit."
+						/>
+						<span class="muted text-xs">time(s)</span>
 						<button class="btn" type="submit">Create link</button>
 					</form>
 				</div>

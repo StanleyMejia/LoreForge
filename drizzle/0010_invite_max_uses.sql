@@ -1,0 +1,1 @@
+ALTER TABLE `world_invites` ADD `max_uses` integer;

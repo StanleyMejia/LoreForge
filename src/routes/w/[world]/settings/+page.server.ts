@@ -148,11 +148,15 @@ export const actions: Actions = {
 		if (!locals.user) error(404);
 		const form = await request.formData();
 		const role = str(form, 'role');
+		// An empty or zero "uses" field means no limit; anything else is clamped to a sane range.
+		const rawUses = str(form, 'maxUses').trim();
+		const maxUses = rawUses === '' ? 1 : Math.min(100, Math.max(0, Number(rawUses) || 0)) || null;
 		createInvite(
 			world.id,
 			isRole(role) ? role : 'viewer',
 			locals.user.id,
-			Math.min(90, Math.max(1, Number(str(form, 'days')) || 7))
+			Math.min(90, Math.max(1, Number(str(form, 'days')) || 7)),
+			maxUses
 		);
 		return { ok: true };
 	},
