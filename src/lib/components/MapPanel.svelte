@@ -39,6 +39,8 @@
 
 	// The image + pins live in a layer that is translated/scaled for pan & zoom.
 	let container: HTMLDivElement | undefined = $state();
+	// ponytail: pan/zoom is component-local, so drilling into a pin's map loses the viewport.
+	// Upgrade path: an $effect persisting scale/tx/ty to sessionStorage keyed by panel id.
 	let scale = $state(1);
 	let tx = $state(0);
 	let ty = $state(0);

@@ -54,6 +54,8 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 	setChapterRefs(world.id, chapter.id, refs);
 	// An explicit keep pins the version the writer is looking at, so it is taken after the
 	// update rather than as a pre-image, and it is exempt from pruning.
+	// ponytail: pinned versions carry a fixed label and cannot be named. Upgrade path: an
+	// inline name input on the write page, passed through as the label.
 	if (payload.keep && saved)
 		saveRevision({
 			worldId: world.id,

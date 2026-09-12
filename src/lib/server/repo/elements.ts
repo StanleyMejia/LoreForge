@@ -187,6 +187,8 @@ export function updateElement(
 	const proposed = input.parentId === undefined ? existing.parentId : input.parentId;
 	const parentId = parentProblem(worldId, id, proposed) ? existing.parentId : proposed;
 	// cleanPanels canonicalises panels on every write, so their JSON is byte-comparable.
+	// ponytail: a reordered-but-equivalent panels array counts as changed. The cost is one
+	// spare revision, never a wrong result; compare structurally if that ever matters.
 	if (
 		name === existing.name &&
 		summary === existing.summary &&

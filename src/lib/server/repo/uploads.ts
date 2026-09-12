@@ -87,6 +87,8 @@ export function listUploads(worldId: string): UploadUsage[] {
 				.where(and(eq(manuscripts.worldId, worldId), sql`${chapters.body} like ${needle}`))
 				.get() ||
 			// A revision pins the images it preserves; pruning the revision releases them again.
+			// ponytail: a like scan per upload, the same order as the elements scan above.
+			// Upgrade path: a derived upload_refs table if the settings page gets slow.
 			!!db
 				.select({ id: revisions.id })
 				.from(revisions)

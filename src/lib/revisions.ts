@@ -1,4 +1,8 @@
+// ponytail: history reaches back 50 windows of *editing time* (about 8 h/doc), not wall time.
+// Upgrade path: thin rows older than a week into day buckets inside prunable().
 export const REVISION_WINDOW_MS = 600_000;
+// ponytail: per-document cap only, no per-world quota. Upgrade path: pass a world total to
+// prunable(), or add a "clear history" action to world settings.
 export const MAX_REVISIONS = 50;
 
 export type RevisionKind = 'chapter' | 'element';
