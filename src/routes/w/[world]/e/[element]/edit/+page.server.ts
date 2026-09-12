@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTypeById } from '$lib/server/repo/worlds';
-import { getElement, updateElement } from '$lib/server/repo/elements';
+import { getElement, parentProblem, updateElement } from '$lib/server/repo/elements';
 import { readElementInput } from '$lib/server/element-form';
 import { str } from '$lib/server/form';
 
@@ -22,7 +22,14 @@ export const actions: Actions = {
 		if (!type || type.worldId !== world.id) return fail(400, { error: 'Invalid type.' });
 		const input = readElementInput(form);
 		if (!input.name) return fail(400, { error: 'Name is required.' });
-		const updated = updateElement(world.id, el.id, { ...input, typeId: type.id });
+		const problem = parentProblem(world.id, el.id, input.parentId ?? null);
+		if (problem) return fail(400, { error: problem });
+		const updated = updateElement(
+			world.id,
+			el.id,
+			{ ...input, typeId: type.id },
+			locals.user?.id ?? null
+		);
 		redirect(303, `/w/${world.slug}/e/${updated?.slug ?? el.slug}`);
 	}
 };

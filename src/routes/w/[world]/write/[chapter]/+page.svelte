@@ -38,6 +38,7 @@
 	let editor: MarkdownEditor | undefined = $state();
 	let saveState: 'clean' | 'dirty' | 'saving' | 'saved' | 'error' = $state('clean');
 	let savedAt: Date | null = $state(null);
+	let kept = $state(false);
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let showBinder = $state(true);
 	let showRefs = $state(true);
@@ -88,25 +89,30 @@
 		if (current === lastSaved) return;
 		saveState = 'dirty';
 		clearTimeout(timer);
+		kept = false;
 		timer = setTimeout(() => void save(), 1500);
 		return () => clearTimeout(timer);
 	});
 
-	async function save() {
+	async function save(opts: { keep?: boolean } = {}) {
 		const current = snapshot();
-		if (current === lastSaved || !title.trim()) return;
+		if (!title.trim()) return;
+		// A deliberate keep is sent even when nothing changed: pausing, then deciding to keep
+		// the version you are looking at, is the whole point of the button.
+		if (!opts.keep && current === lastSaved) return;
 		saveState = 'saving';
 		try {
 			const r = await fetch(api, {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
-				body: current
+				body: opts.keep ? JSON.stringify({ ...JSON.parse(current), keep: true }) : current
 			});
 			if (!r.ok) throw new Error(String(r.status));
 			const j = (await r.json()) as { savedAt: number };
 			lastSaved = current;
 			savedAt = new Date(j.savedAt);
 			saveState = snapshot() === current ? 'saved' : 'dirty';
+			if (opts.keep) kept = true;
 		} catch {
 			saveState = 'error';
 		}
@@ -301,10 +307,20 @@
 				<div
 					class="mt-10 flex items-center justify-between border-t border-slate-800 pt-4 text-xs text-slate-500"
 				>
-					<a
-						href="{base}/m/{data.chapter.manuscriptId}/read#ch-{data.chapter.id}"
-						class="hover:text-amber-300">Read through →</a
-					>
+					<span class="flex gap-3">
+						<a
+							href="{base}/m/{data.chapter.manuscriptId}/read#ch-{data.chapter.id}"
+							class="hover:text-amber-300">Read through →</a
+						>
+						<a href="{base}/write/{data.chapter.id}/history" class="hover:text-amber-300">History</a
+						>
+						<button
+							type="button"
+							class="hover:text-amber-300"
+							onclick={() => void save({ keep: true })}>Keep this version</button
+						>
+						{#if kept}<span class="text-emerald-400">kept ✓</span>{/if}
+					</span>
 					<span class="flex items-center gap-2">
 						<form method="POST" action="?/move" use:enhance class="flex gap-0.5">
 							<button class="btn btn-ghost btn-sm" name="dir" value="up" title="Move chapter up"

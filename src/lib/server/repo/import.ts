@@ -210,11 +210,20 @@ export function importWorld(
 					tags: Array.isArray(e.tags)
 						? (e.tags as unknown[]).map((t) => str(t, 100)).filter(Boolean)
 						: [],
-					imageUrl: remapText(str(e.imageUrl, 2000))
+					imageUrl: remapText(str(e.imageUrl, 2000)),
+					// Set after the insert: a child may precede its parent in the bundle, and the
+					// self-referencing foreign key is checked per row.
+					parentId: null
 				};
 			})
 			.filter((r) => r !== null);
 		if (elementRows.length) tx.insert(elements).values(elementRows).run();
+		for (const e of arr(bundle.elements)) {
+			const id = elementMap.get(str(e.id, 80));
+			const parentId = elementMap.get(str(e.parentId, 80));
+			if (id && parentId && id !== parentId)
+				tx.update(elements).set({ parentId }).where(eq(elements.id, id)).run();
+		}
 		counts.elements = elementRows.length;
 
 		const relRows = arr(bundle.relationships)

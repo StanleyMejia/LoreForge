@@ -3,6 +3,7 @@
 	import PanelEditor from './PanelEditor.svelte';
 	import ImageField from './ImageField.svelte';
 	import { panelsFromTemplate, type Panel } from '$lib/types';
+	import { ancestors } from '$lib/tree';
 
 	interface TypeOpt {
 		id: string;
@@ -16,6 +17,8 @@
 		slug: string;
 		name: string;
 		typeKey: string;
+		typeName: string;
+		parentId?: string | null;
 		icon: string;
 	}
 	interface Props {
@@ -30,6 +33,7 @@
 			panels: Panel[];
 			tags: string[];
 			imageUrl: string;
+			parentId?: string | null;
 		} | null;
 		initialName?: string;
 		error?: string;
@@ -56,6 +60,26 @@
 			? structuredClone($state.snapshot(element.panels))
 			: panelsFromTemplate(types.find((t) => t.id === typeId)?.panels ?? [])
 	);
+	// Bound, not `value=`: this component holds a panels $state, and Svelte batches the form's
+	// attribute effects, which resets an unbound value whenever the panels JSON changes.
+	// svelte-ignore state_referenced_locally
+	let parentId = $state(element?.parentId ?? '');
+	const parentOf = $derived(new Map(index.map((e) => [e.id, e.parentId ?? null])));
+	/** Anything but self and its own descendants, so the picker cannot offer a loop. */
+	const parentGroups = $derived.by(() => {
+		const ok = index.filter(
+			(e) =>
+				!element ||
+				(e.id !== element.id && !ancestors(e.id, (x) => parentOf.get(x)).includes(element.id))
+		);
+		const out: { name: string; items: IndexItem[] }[] = [];
+		for (const e of ok) {
+			const group = out.find((g) => g.name === e.typeName);
+			if (group) group.items.push(e);
+			else out.push({ name: e.typeName, items: [e] });
+		}
+		return out;
+	});
 	let dirty = $state(false);
 	// Bound inputs: Svelte batches this form's attribute updates into one effect, so unbound
 	// value={...} inputs would be reset whenever the panels JSON changes.
@@ -145,6 +169,17 @@
 				name="imageUrl"
 				placeholder="https://… or upload a portrait"
 			/>
+		</div>
+		<div>
+			<label class="label" for="parentId">Inside</label>
+			<select class="select" id="parentId" name="parentId" bind:value={parentId}>
+				<option value="">— nothing —</option>
+				{#each parentGroups as g (g.name)}
+					<optgroup label={g.name}>
+						{#each g.items as e (e.id)}<option value={e.id}>{e.icon} {e.name}</option>{/each}
+					</optgroup>
+				{/each}
+			</select>
 		</div>
 	</div>
 

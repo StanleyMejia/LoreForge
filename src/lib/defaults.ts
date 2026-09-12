@@ -89,7 +89,6 @@ export const DEFAULT_TYPES: DefaultType[] = [
 					'Planet',
 					'Other'
 				]),
-				ref('parent', 'Located in', 'location'),
 				ref('government', 'Ruled by', 'faction'),
 				txt('population', 'Population'),
 				txt('climate', 'Climate')
@@ -97,6 +96,7 @@ export const DEFAULT_TYPES: DefaultType[] = [
 			text('description', 'Description'),
 			text('history', 'History'),
 			gallery('image', 'Image'),
+			map('map', 'Map'),
 			links('residents', 'Notable People & Places')
 		]
 	},
