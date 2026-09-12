@@ -120,19 +120,23 @@ anything missing is reported after the import. Revision history is not part of t
 restored world starts with a clean history and keeps only its current content.
 
 Behind a reverse proxy, set `ORIGIN` to the public URL (e.g. `https://lore.example.lan`) and
-uncomment `PROTOCOL_HEADER` / `HOST_HEADER`.
+uncomment `PROTOCOL_HEADER` / `HOST_HEADER` / `ADDRESS_HEADER`. The last one matters for more than
+logs: sign-in is rate limited per client address, and without it every visitor counts as the proxy.
+The app warns at boot if the other two are set and it is not.
 
 Configuration is all environment variables:
 
-| Variable                         | Default              | Purpose                                             |
-| -------------------------------- | -------------------- | --------------------------------------------------- |
-| `ORIGIN`                         | –                    | Public origin; form actions are rejected without it |
-| `PORT`                           | `3000`               | Listen port inside the container                    |
-| `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                    |
-| `BODY_SIZE_LIMIT`                | `25M`                | Max request body (uploads, long chapters)           |
-| `UPLOADS_DIR`                    | `<db dir>/uploads`   | Where uploaded images are stored                    |
-| `MAX_UPLOAD_MB`                  | `10`                 | Per-file upload limit                               |
-| `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                 |
+| Variable                         | Default              | Purpose                                                                                                            |
+| -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ORIGIN`                         | –                    | Public origin; form actions are rejected without it                                                                |
+| `PORT`                           | `3000`               | Listen port inside the container                                                                                   |
+| `DATABASE_URL`                   | `/data/loreforge.db` | SQLite file path                                                                                                   |
+| `BODY_SIZE_LIMIT`                | `25M`                | Max request body (uploads, long chapters)                                                                          |
+| `UPLOADS_DIR`                    | `<db dir>/uploads`   | Where uploaded images are stored                                                                                   |
+| `MAX_UPLOAD_MB`                  | `10`                 | Per-file upload limit                                                                                              |
+| `PROTOCOL_HEADER`, `HOST_HEADER` | –                    | Trust proxy headers                                                                                                |
+| `ADDRESS_HEADER`                 | –                    | Header carrying the real client address behind a proxy; without it sign-in rate limits are shared by every visitor |
+| `XFF_DEPTH`                      | `1`                  | How many proxies sit in front, when `ADDRESS_HEADER` is `x-forwarded-for`                                          |
 
 ### Single sign-on with Pocket ID (or any OIDC provider)
 
