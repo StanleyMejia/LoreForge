@@ -43,6 +43,10 @@
 		<a href="{base}/t/{data.type.key}" class="hover:text-slate-300"
 			>{data.type.icon} {data.type.name}</a
 		>
+		{#each data.trail as a (a.id)}
+			<span class="mx-1">/</span>
+			<a href="{base}/e/{a.slug}" class="hover:text-slate-300">{a.name}</a>
+		{/each}
 		<span class="mx-1">/</span>
 		<span class="text-slate-300">{data.element.name}</span>
 	</nav>

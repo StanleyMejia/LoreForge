@@ -28,7 +28,9 @@ function readContent(raw: string) {
 			.map((t) => coerce(t, 60).trim())
 			.filter(Boolean),
 		imageUrl: coerce(parsed.imageUrl, 2000),
-		typeId: coerce(parsed.typeId, 80)
+		typeId: coerce(parsed.typeId, 80),
+		// Older revisions predate containment and simply have no parent recorded.
+		parentId: coerce(parsed.parentId, 80) || null
 	};
 }
 
@@ -88,7 +90,8 @@ export const actions: Actions = {
 				panels: el.panels,
 				tags: el.tags,
 				imageUrl: el.imageUrl,
-				typeId: el.typeId
+				typeId: el.typeId,
+				parentId: el.parentId
 			})
 		});
 		// The stored type may have been deleted since; keep the element where it is.

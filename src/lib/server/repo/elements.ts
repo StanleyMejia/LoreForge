@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { slugify, uniquify } from '$lib/slug';
+import { ancestors, MAX_DEPTH } from '$lib/tree';
 import { extractWikiLinks } from '$lib/markdown';
 import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
@@ -19,6 +20,7 @@ const listCols = {
 	tags: elements.tags,
 	imageUrl: elements.imageUrl,
 	typeId: elements.typeId,
+	parentId: elements.parentId,
 	updatedAt: elements.updatedAt,
 	typeKey: elementTypes.key,
 	typeName: elementTypes.singular,
@@ -58,6 +60,7 @@ export function elementIndex(worldId: string) {
 			slug: elements.slug,
 			name: elements.name,
 			summary: elements.summary,
+			parentId: elements.parentId,
 			typeKey: elementTypes.key,
 			typeName: elementTypes.singular,
 			icon: elementTypes.icon
@@ -105,6 +108,29 @@ export interface ElementInput {
 	tags?: string[];
 	imageUrl?: string;
 	typeId?: string;
+	/** Undefined leaves the current parent alone; null clears it. */
+	parentId?: string | null;
+}
+
+/**
+ * Why `parentId` cannot contain `id`, or null when it can. Walking up from the proposed
+ * parent is bounded by depth rather than by subtree size, so it stays cheap.
+ * ponytail: caps the element's own depth, not its descendants'. The tree render is depth-bounded
+ * too, so deeper data still displays; tighten here if a real limit is ever needed.
+ */
+export function parentProblem(
+	worldId: string,
+	id: string | null,
+	parentId: string | null
+): string | null {
+	if (!parentId) return null;
+	if (id && parentId === id) return 'An element cannot be inside itself.';
+	const parent = getElementById(parentId);
+	if (!parent || parent.worldId !== worldId) return 'That parent is not in this world.';
+	const chain = ancestors(parentId, (x) => getElementById(x)?.parentId);
+	if (id && chain.includes(id)) return 'That would put the two inside each other.';
+	if (chain.length + 1 >= MAX_DEPTH) return 'That nests too deeply.';
+	return null;
 }
 
 export function createElement(worldId: string, typeId: string, input: ElementInput) {
@@ -128,7 +154,10 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 			summary: input.summary ?? '',
 			panels,
 			tags: input.tags ?? [],
-			imageUrl: input.imageUrl ?? ''
+			imageUrl: input.imageUrl ?? '',
+			parentId: parentProblem(worldId, null, input.parentId ?? null)
+				? null
+				: (input.parentId ?? null)
 		})
 		.returning()
 		.get();
@@ -154,6 +183,9 @@ export function updateElement(
 	const tags = input.tags ?? existing.tags;
 	const imageUrl = input.imageUrl ?? existing.imageUrl;
 	const typeId = input.typeId ?? existing.typeId;
+	// An invalid parent is refused rather than stored, whatever the caller passed.
+	const proposed = input.parentId === undefined ? existing.parentId : input.parentId;
+	const parentId = parentProblem(worldId, id, proposed) ? existing.parentId : proposed;
 	// cleanPanels canonicalises panels on every write, so their JSON is byte-comparable.
 	if (
 		name === existing.name &&
@@ -161,7 +193,8 @@ export function updateElement(
 		JSON.stringify(panels) === JSON.stringify(existing.panels) &&
 		JSON.stringify(tags) === JSON.stringify(existing.tags) &&
 		imageUrl === existing.imageUrl &&
-		typeId === existing.typeId
+		typeId === existing.typeId &&
+		parentId === existing.parentId
 	)
 		return existing;
 	maybeRevision({
@@ -175,7 +208,8 @@ export function updateElement(
 			panels: existing.panels,
 			tags: existing.tags,
 			imageUrl: existing.imageUrl,
-			typeId: existing.typeId
+			typeId: existing.typeId,
+			parentId: existing.parentId
 		})
 	});
 	const row = db
@@ -188,6 +222,7 @@ export function updateElement(
 			tags,
 			imageUrl,
 			typeId,
+			parentId,
 			updatedAt: new Date()
 		})
 		.where(eq(elements.id, id))
@@ -198,6 +233,23 @@ export function updateElement(
 	syncMapPins(worldId, row.id, row.panels);
 	touchWorld(worldId);
 	return row;
+}
+
+/** The containment chain of an element, outermost first, for breadcrumbs. */
+export function ancestorTrail(id: string): { id: string; name: string; slug: string }[] {
+	const cache = new Map<string, ReturnType<typeof getElementById>>();
+	const at = (x: string) => {
+		if (!cache.has(x)) cache.set(x, getElementById(x));
+		return cache.get(x);
+	};
+	const chain = ancestors(id, (x) => at(x)?.parentId);
+	if (!chain.length) return [];
+	const by = new Map(getElementsByIds(chain).map((e) => [e.id, e]));
+	return chain
+		.reverse()
+		.map((x) => by.get(x))
+		.filter((e) => e !== undefined)
+		.map((e) => ({ id: e.id, name: e.name, slug: e.slug }));
 }
 
 export function deleteElement(id: string) {
@@ -382,6 +434,25 @@ export function allTags(worldId: string): { tag: string; count: number }[] {
 }
 
 // ---- map pins ------------------------------------------------------------
+
+/**
+ * Of the given elements, those that own map pins — the ones a pin can lead further into.
+ * Reads the derived map_pins table, which is already maintained on every element save, so
+ * no panel JSON has to be loaded into the element lists.
+ * ponytail: "leads somewhere" means the target owns at least one linked pin, so a map image
+ * with no pins on it is not marked. A pinless map is a dead end, which is arguably right.
+ */
+export function mapOwners(ids: string[]): Set<string> {
+	if (!ids.length) return new Set();
+	return new Set(
+		db
+			.selectDistinct({ id: mapPins.mapElementId })
+			.from(mapPins)
+			.where(inArray(mapPins.mapElementId, ids))
+			.all()
+			.map((r) => r.id)
+	);
+}
 
 /** Recompute the derived map_pins rows for one map element from its map panels. */
 export function syncMapPins(worldId: string, mapElementId: string, panels: Panel[]) {

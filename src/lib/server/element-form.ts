@@ -10,6 +10,7 @@ export function readElementInput(form: FormData): ElementInput {
 		panels: cleanPanels(parseJson(str(form, 'panels'), [])),
 		tags: parseTags(str(form, 'tags')),
 		imageUrl: str(form, 'imageUrl').trim(),
-		typeId: str(form, 'typeId') || undefined
+		typeId: str(form, 'typeId') || undefined,
+		parentId: str(form, 'parentId') || null
 	};
 }

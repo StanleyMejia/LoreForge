@@ -177,4 +177,6 @@ export type ViewPanel =
 
 export type ViewPin = MapPin & {
 	element: { name: string; slug: string; icon: string; summary: string } | null;
+	/** The target has a map of its own, so this pin leads further in. */
+	childMap?: boolean;
 };

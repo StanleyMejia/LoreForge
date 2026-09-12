@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+	index,
+	integer,
+	real,
+	sqliteTable,
+	text,
+	uniqueIndex,
+	type AnySQLiteColumn
+} from 'drizzle-orm/sqlite-core';
 import type { Panel } from '$lib/types';
 
 const id = () =>
@@ -60,13 +68,18 @@ export const elements = sqliteTable(
 		panels: text('panels', { mode: 'json' }).notNull().$type<Panel[]>().default([]),
 		tags: text('tags', { mode: 'json' }).notNull().$type<string[]>().default([]),
 		imageUrl: text('image_url').notNull().default(''),
+		/** Containment: the element this one sits inside. Cleared, not cascaded, on delete. */
+		parentId: text('parent_id').references((): AnySQLiteColumn => elements.id, {
+			onDelete: 'set null'
+		}),
 		createdAt: now(),
 		updatedAt: updated()
 	},
 	(t) => [
 		uniqueIndex('elements_world_slug').on(t.worldId, t.slug),
 		index('elements_world_type').on(t.worldId, t.typeId),
-		index('elements_world_name').on(t.worldId, t.name)
+		index('elements_world_name').on(t.worldId, t.name),
+		index('elements_world_parent').on(t.worldId, t.parentId)
 	]
 );
 

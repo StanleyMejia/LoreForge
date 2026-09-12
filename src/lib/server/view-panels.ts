@@ -1,4 +1,4 @@
-import { getElementsByIds } from './repo/elements';
+import { getElementsByIds, mapOwners } from './repo/elements';
 import { renderMarkdown, type RenderContext } from '$lib/markdown';
 import type { Panel, ViewPanel } from '$lib/types';
 
@@ -12,6 +12,12 @@ export function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext):
 		if (p.kind === 'map') for (const pin of p.pins) if (pin.elementId) refIds.add(pin.elementId);
 	}
 	const refs = new Map(getElementsByIds([...refIds]).map((e) => [e.id, e]));
+	// Which pin targets carry a map of their own, so the pin can be shown as a way in.
+	const drillable = mapOwners(
+		panels.flatMap((p) =>
+			p.kind === 'map' ? p.pins.map((pin) => pin.elementId).filter(Boolean) : []
+		)
+	);
 	const out: ViewPanel[] = [];
 	for (const p of panels) {
 		switch (p.kind) {
@@ -80,7 +86,8 @@ export function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext):
 								...pin,
 								element: r
 									? { name: r.name, slug: r.slug, icon: r.typeIcon, summary: r.summary }
-									: null
+									: null,
+								childMap: r ? drillable.has(r.id) : false
 							};
 						})
 					});

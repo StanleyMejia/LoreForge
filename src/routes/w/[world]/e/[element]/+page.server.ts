@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getTypeById } from '$lib/server/repo/worlds';
 import {
+	ancestorTrail,
 	backlinks,
 	createRelationship,
 	deleteElement,
@@ -27,6 +28,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		element,
 		type,
 		panels: prepare(element.panels, world.slug, ctx),
+		trail: ancestorTrail(element.id),
 		relationships: relationshipsFor(element.id),
 		// chapter mentions are shown under "Appears in" instead
 		backlinks: backlinks(world.slug, element.id).filter((b) => b.kind !== 'chapter'),

@@ -13,6 +13,8 @@
 	/** Pin as prepared for viewing: linked element resolved. */
 	export interface ViewPin extends MapPin {
 		element: { name: string; slug: string; icon: string; summary: string } | null;
+		/** The target has a map of its own, so clicking leads further in. */
+		childMap?: boolean;
 	}
 	interface Props {
 		mode: 'view' | 'edit';
@@ -229,6 +231,7 @@
 							type="button"
 							data-pin={p.id}
 							data-role="map-pin"
+							data-child-map={'childMap' in p && p.childMap ? 'true' : undefined}
 							class="absolute {selected === p.id ? 'z-20' : 'z-10'}"
 							style="left: {p.x * 100}%; top: {p.y *
 								100}%; transform: translate(-50%, -100%) scale({1 /
@@ -251,6 +254,17 @@
 									stroke-width="1.5"
 								/>
 								<circle cx="14" cy="13" r="4.5" fill="#0f172a" fill-opacity="0.6" />
+								{#if 'childMap' in p && p.childMap}
+									<circle
+										cx="14"
+										cy="13"
+										r="8"
+										fill="none"
+										stroke="#0f172a"
+										stroke-opacity="0.75"
+										stroke-width="1.5"
+									/>
+								{/if}
 							</svg>
 							{#if hover === p.id || selected === p.id}
 								<span
@@ -350,7 +364,9 @@
 							onmouseenter={() => (hover = p.id)}
 							onmouseleave={() => (hover = null)}
 							><span class="mr-1 inline-block h-2 w-2 rounded-full" style="background: {p.color}"
-							></span>{p.label || el.name}</a
+							></span>{p.label || el.name}{#if 'childMap' in p && p.childMap}<span
+									class="ml-1 text-slate-500">→</span
+								>{/if}</a
 						>
 					{:else}
 						<button

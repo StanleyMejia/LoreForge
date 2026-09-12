@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { slugify, uniquify } from './lib/slug.ts';
 import { num, str } from './lib/server/coerce.ts';
 import { MAX_REVISIONS, prunable, REVISION_WINDOW_MS, revisionDue } from './lib/revisions.ts';
+import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -47,5 +48,54 @@ assert.deepEqual(
 	prunable(many),
 	'pinned rows do not count against the cap'
 );
+
+// --- ancestor chains ---
+const chain: Record<string, string | null> = { c: 'b', b: 'a', a: null };
+assert.deepEqual(
+	ancestors('c', (i) => chain[i]),
+	['b', 'a'],
+	'nearest ancestor first'
+);
+assert.deepEqual(
+	ancestors('a', (i) => chain[i]),
+	[],
+	'a root has no ancestors'
+);
+assert.deepEqual(
+	ancestors('c', () => undefined),
+	[],
+	'a missing parent stops the walk'
+);
+// Cycles must terminate rather than hang, however they got into the database.
+const cycle: Record<string, string> = { x: 'y', y: 'x' };
+assert.deepEqual(
+	ancestors('x', (i) => cycle[i]),
+	['y'],
+	'a 2-cycle terminates without repeats'
+);
+assert.deepEqual(
+	ancestors('s', () => 's'),
+	[],
+	'self-parent yields nothing'
+);
+const deep: Record<string, string> = {};
+for (let i = 0; i < 100; i++) deep[`n${i}`] = `n${i + 1}`;
+assert.equal(ancestors('n0', (i) => deep[i]).length, MAX_DEPTH, 'the walk is capped at MAX_DEPTH');
+
+// --- tree building ---
+const node = (id: string, parentId: string | null = null) => ({ id, parentId });
+assert.deepEqual(buildTree([]), []);
+const twoLevel = buildTree([node('a'), node('b', 'a'), node('c', 'a')]);
+assert.equal(twoLevel.length, 1, 'one root');
+assert.deepEqual(
+	twoLevel[0].children.map((c) => c.item.id),
+	['b', 'c'],
+	'children keep input order'
+);
+// A parent outside the list (another type, say) leaves the child at the top level.
+const orphan = buildTree([node('b', 'missing')]);
+assert.equal(orphan.length, 1, 'an absent parent makes the child a root');
+assert.deepEqual(buildTree([node('x', 'y'), node('y', 'x')]), [], 'a cycle renders nothing');
+assert.equal(buildTree([node('s', 's')]).length, 1, 'a self-parent stays a root, not a loop');
 
 console.log('selfcheck ok');
