@@ -100,7 +100,7 @@
 
 	<div class="grid gap-8 lg:grid-cols-[1fr_300px]">
 		<article class="space-y-4">
-			<ElementPanels panels={data.panels} {base}>
+			<ElementPanels panels={data.panels} {base} comments={data.comments} readonly={data.readonly}>
 				{#snippet empty()}
 					<p class="muted">
 						Nothing filled in yet. <a

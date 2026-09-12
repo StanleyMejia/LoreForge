@@ -33,8 +33,12 @@
 			{data.chapters.length} chapters · {total.toLocaleString('en')} words
 		</p>
 	</div>
-	<div class="flex gap-2">
+	<div class="flex flex-wrap gap-2">
 		<a class="btn" href="{mbase}/read">Read through</a>
+		{#if data.chapters.length}
+			<a class="btn" href="{mbase}/export?format=epub" data-sveltekit-reload>EPUB</a>
+			<a class="btn" href="{mbase}/export?format=docx" data-sveltekit-reload>DOCX</a>
+		{/if}
 		{#if !data.readonly}
 			<button class="btn" onclick={() => (editMeta = !editMeta)}>Edit details</button>
 			{#if confirmDelete}

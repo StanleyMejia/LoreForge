@@ -7,6 +7,7 @@ import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
 import { indexElement, removeFromIndex } from './search';
 import { deleteRevisions, maybeRevision } from './revisions';
+import { pruneComments } from './comments';
 
 const { elements, elementTypes, links, relationships, mapPins } = schema;
 
@@ -233,6 +234,10 @@ export function updateElement(
 	syncLinks(worldId, 'element', row.id, panelsText(row.panels));
 	indexElement(row);
 	syncMapPins(worldId, row.id, row.panels);
+	pruneComments(
+		row.id,
+		row.panels.map((p) => p.id)
+	);
 	touchWorld(worldId);
 	return row;
 }

@@ -12,6 +12,8 @@ export interface RenderContext {
 	elementBase: string;
 	/** Case-insensitive lookup by element name (or slug). */
 	resolve: (name: string) => LinkTarget | undefined;
+	/** Render `[[wiki links]]` as their text alone — for exports, where app URLs mean nothing. */
+	plain?: boolean;
 }
 
 const WIKI_RE = /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g;
@@ -69,6 +71,7 @@ export function createMarkdown(ctx: RenderContext): Marked {
 				},
 				renderer(token) {
 					const t = token as WikiToken;
+					if (ctx.plain) return escapeHtml(t.text);
 					const hit = ctx.resolve(t.target);
 					if (hit) {
 						const tip = hit.summary ? `${hit.name} — ${hit.summary}` : hit.name;

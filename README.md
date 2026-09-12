@@ -30,8 +30,12 @@ One Node process, one SQLite file, no external services.
   lists them as a collapsible tree instead of a flat grid. Cycles and runaway depth are refused.
 - **Revision history** – chapters and elements keep the content as it was before each edit, one
   version per ten minutes of work, up to fifty per document. Read any version in place, restore it
-  in one click, or pin one with _Keep this version_ so it is never pruned. Viewers of a shared
-  world can read history; only editors can restore.
+  in one click, or pin one with a name so it is never pruned. Chapter versions can be compared: the
+  diff matches paragraphs first and then words inside an edited one, so an untouched paragraph stays
+  quiet and a reworded sentence shows only the words that moved. Viewers of a shared world can read
+  history; only editors can restore.
+- **Panel comments** – co-writers can leave notes against any single panel of an element, then
+  resolve, reopen or delete them. Editors write, viewers read.
 - **Relationships** – labelled, directional edges (`mentor of` / `student of`) plus a
   force-directed relationship map.
 - **Timeline** – events with free-form date labels, eras and a numeric sort key, so any
@@ -48,6 +52,10 @@ One Node process, one SQLite file, no external services.
 - **Full-text search** (SQLite FTS5) across elements, chapters and timeline events with stemming,
   prefix matching, ranked results and highlighted snippets; live suggestions in the sidebar. Tags
   filter elements.
+- **Tags** – a tags page lists every tag in the world, sized by use, each linking to its search.
+- **Manuscript export** – download a book as **EPUB** or **DOCX**, built in-process with no
+  external converter. Headings, emphasis, quotes, lists and scene breaks carry over, and each
+  chapter starts a new page.
 - **Export and import** – download a world as one JSON file and restore it as a new world.
 - **Single sign-on** via OpenID Connect (Pocket ID, Authentik, Keycloak…), optional.
 - **Sharing** – per-user worlds; share with others as editor or viewer by email or invite link.
@@ -67,8 +75,9 @@ mentioned in the chapter with a peek at its details.
   and a scene break. Markdown and `[[Name]]` links work as everywhere else.
 - **Focus** hides both side columns; the word counter also shows words added this session.
 - **History** in the footer lists every earlier version of the chapter with its age, author and
-  how much it added or cut. _Keep this version_ pins the draft you are looking at. Restoring
-  records what it replaced first, so a restore is itself undoable.
+  how much it added or cut, and can diff any version against the live text or against the one
+  before it. _Keep this version_ pins the draft you are looking at under a name you choose.
+  Restoring records what it replaced first, so a restore is itself undoable.
 - Viewers of a shared world are routed to the read-through view instead of the editor.
 - Old chapter URLs (`/m/<manuscript>/c/<chapter>`) redirect into the workspace.
 
@@ -215,18 +224,21 @@ SvelteKit (Svelte 5, TypeScript, Tailwind v4)
       └─ migrations in ./drizzle, applied automatically at startup
 ```
 
-| Path                                    | Purpose                                                                                                         |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `src/lib/server/db/schema.ts`           | Drizzle schema: worlds, element_types, elements, relationships, links, events, manuscripts, chapters, revisions |
-| `src/lib/server/repo/*`                 | All queries. Routes never touch the DB directly.                                                                |
-| `src/lib/server/panels.ts`              | Validation of panel JSON coming from the browser                                                                |
-| `src/lib/types.ts`                      | Panel / field type definitions shared by client and server                                                      |
-| `src/lib/tree.ts`                       | Cycle-safe ancestor walk and forest builder for containment                                                     |
-| `src/lib/revisions.ts`                  | When a revision is due and which ones may be pruned                                                             |
-| `src/lib/defaults.ts`                   | Default modules and their panel templates                                                                       |
-| `src/lib/markdown.ts`                   | Markdown renderer with `[[wiki link]]` extension and HTML sanitising                                            |
-| `src/lib/components/PanelEditor.svelte` | The panel-based element editor (also used for type templates)                                                   |
-| `src/routes/w/[world]/…`                | All world-scoped pages; server load + form actions per route                                                    |
+| Path                                    | Purpose                                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/server/db/schema.ts`           | Drizzle schema: worlds, element_types, elements, relationships, links, events, manuscripts, chapters, revisions, comments |
+| `src/lib/server/repo/*`                 | All queries. Routes never touch the DB directly.                                                                          |
+| `src/lib/server/panels.ts`              | Validation of panel JSON coming from the browser                                                                          |
+| `src/lib/types.ts`                      | Panel / field type definitions shared by client and server                                                                |
+| `src/lib/tree.ts`                       | Cycle-safe ancestor walk and forest builder for containment                                                               |
+| `src/lib/revisions.ts`                  | When a revision is due and which ones may be pruned                                                                       |
+| `src/lib/diff.ts`                       | Paragraph-then-word diff, shaped for prose rather than code                                                               |
+| `src/lib/server/zip.ts`                 | Minimal ZIP writer (stdlib only) behind both EPUB and DOCX                                                                |
+| `src/lib/server/epub.ts`, `docx.ts`     | Manuscript export                                                                                                         |
+| `src/lib/defaults.ts`                   | Default modules and their panel templates                                                                                 |
+| `src/lib/markdown.ts`                   | Markdown renderer with `[[wiki link]]` extension and HTML sanitising                                                      |
+| `src/lib/components/PanelEditor.svelte` | The panel-based element editor (also used for type templates)                                                             |
+| `src/routes/w/[world]/…`                | All world-scoped pages; server load + form actions per route                                                              |
 
 ### Data model
 
@@ -251,6 +263,9 @@ SvelteKit (Svelte 5, TypeScript, Tailwind v4)
   Retention is fifty per document, pruned in the same call that inserts; rows with a label are
   pinned and exempt. An image referenced only by a revision is not counted as unused, so it
   survives the Settings cleanup until that revision is pruned.
+- `comments` hangs off an element and a `panel_id`. Panel ids live inside the panels JSON, so there
+  is no foreign key to lean on, and the element save path drops comments whose panel has been
+  removed — the same explicit cleanup the derived tables get.
 
 ### Schema changes
 
@@ -263,11 +278,11 @@ Migrations run on boot, so a container restart upgrades the database.
 
 ## Roadmap ideas
 
-- Per-panel comments for co-writers on a shared world
-- A diff between two revisions; today the history list shows only how much each one added or cut
-- Naming a pinned version, rather than the fixed _kept_ label
+- Comment threads with replies, and comments on chapters as well as element panels
+- Letting a viewer of a shared world comment, which needs a deliberate exception to the rule that
+  viewers cannot write
+- A structural diff for element revisions; today only chapter prose can be compared
 - Carrying revision history through export and import
 - Remembering a map's pan and zoom when drilling into a child map and coming back
-- A tags page, and filtering within a containment tree
-- EPUB / DOCX export of a manuscript
+- Images, tables and real Word list numbering in the DOCX export
 - Offline-friendly editing with conflict resolution

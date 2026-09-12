@@ -62,6 +62,9 @@
 						<span class="text-xs text-slate-500">{t.count}</span>
 					</a>
 				{/each}
+				<a href="{base}/tags" class="nav {active(`${base}/tags`) ? 'nav-active' : ''}"
+					><span>🏷️</span> Tags</a
+				>
 
 				<p class="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
 					Story

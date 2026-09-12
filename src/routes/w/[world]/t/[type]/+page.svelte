@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import ElementCard from '$lib/components/ElementCard.svelte';
 	import ElementTree from '$lib/components/ElementTree.svelte';
+	import { ancestors } from '$lib/tree';
 
 	let { data, form } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
@@ -20,6 +21,19 @@
 				})
 			: data.elements
 	);
+
+	const parentOf = $derived(new Map(data.elements.map((e) => [e.id, e.parentId ?? null])));
+	const matched = $derived(new Set(filter.trim() ? shown.map((e) => e.id) : []));
+	/**
+	 * Filtering a tree has to keep each match's ancestors, or a nested hit loses the context that
+	 * makes it findable. Ancestors are shown but not highlighted.
+	 */
+	const branch = $derived.by(() => {
+		if (!filter.trim()) return data.elements;
+		const keep = new Set(matched);
+		for (const id of matched) for (const a of ancestors(id, (x) => parentOf.get(x))) keep.add(a);
+		return data.elements.filter((e) => keep.has(e.id));
+	});
 </script>
 
 <svelte:head><title>{data.type.name} · {data.world.name}</title></svelte:head>
@@ -57,9 +71,9 @@
 </div>
 {#if form?.error}<p class="mb-4 text-sm text-red-400">{form.error}</p>{/if}
 
-{#if shown.length && nested && !filter.trim()}
+{#if shown.length && nested}
 	<div class="card">
-		<ElementTree items={shown} {base} />
+		<ElementTree items={branch} {base} {matched} />
 	</div>
 {:else if shown.length}
 	<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

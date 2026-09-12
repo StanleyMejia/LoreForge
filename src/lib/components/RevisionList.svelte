@@ -8,12 +8,20 @@
 		delta: number;
 		createdAt: Date;
 		author: string | null;
+		prevId?: string | null;
 	}
 	let {
 		revisions,
 		shownId = null,
-		readonly = false
-	}: { revisions: Row[]; shownId?: string | null; readonly?: boolean } = $props();
+		readonly = false,
+		compare = false
+	}: {
+		revisions: Row[];
+		shownId?: string | null;
+		readonly?: boolean;
+		/** Offer a comparison against the current text (prose only). */
+		compare?: boolean;
+	} = $props();
 
 	/** Byte counts are the cheap honest signal: how much a save added or cut. */
 	function size(bytes: number) {
@@ -30,7 +38,7 @@
 			data-role="revision"
 		>
 			<span class="text-sm text-slate-200">{timeAgo(r.createdAt)}</span>
-			{#if r.label}<span class="chip">kept</span>{/if}
+			{#if r.label}<span class="chip" title="Kept version">{r.label}</span>{/if}
 			<span class="muted text-xs">{size(r.bytes)}</span>
 			{#if r.delta !== 0}
 				<span class="text-xs {r.delta > 0 ? 'text-emerald-400' : 'text-red-400'}"
@@ -40,6 +48,11 @@
 			{#if r.author}<span class="muted text-xs">by {r.author}</span>{/if}
 			<span class="ml-auto flex items-center gap-2">
 				<a class="btn btn-ghost btn-sm" href="?rev={r.id}">View</a>
+				{#if compare}
+					<a class="btn btn-ghost btn-sm" href="?rev={r.id}&vs=current" title="Compare with now"
+						>Diff</a
+					>
+				{/if}
 				{#if !readonly}
 					<form method="POST" action="?/restore">
 						<input type="hidden" name="id" value={r.id} />

@@ -39,6 +39,8 @@
 	let saveState: 'clean' | 'dirty' | 'saving' | 'saved' | 'error' = $state('clean');
 	let savedAt: Date | null = $state(null);
 	let kept = $state(false);
+	let naming = $state(false);
+	let keepName = $state('');
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let showBinder = $state(true);
 	let showRefs = $state(true);
@@ -94,7 +96,13 @@
 		return () => clearTimeout(timer);
 	});
 
-	async function save(opts: { keep?: boolean } = {}) {
+	async function pin() {
+		await save({ keep: keepName.trim() || true });
+		naming = false;
+		keepName = '';
+	}
+
+	async function save(opts: { keep?: boolean | string } = {}) {
 		const current = snapshot();
 		if (!title.trim()) return;
 		// A deliberate keep is sent even when nothing changed: pausing, then deciding to keep
@@ -105,7 +113,7 @@
 			const r = await fetch(api, {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
-				body: opts.keep ? JSON.stringify({ ...JSON.parse(current), keep: true }) : current
+				body: opts.keep ? JSON.stringify({ ...JSON.parse(current), keep: opts.keep }) : current
 			});
 			if (!r.ok) throw new Error(String(r.status));
 			const j = (await r.json()) as { savedAt: number };
@@ -314,11 +322,37 @@
 						>
 						<a href="{base}/write/{data.chapter.id}/history" class="hover:text-amber-300">History</a
 						>
-						<button
-							type="button"
-							class="hover:text-amber-300"
-							onclick={() => void save({ keep: true })}>Keep this version</button
-						>
+						{#if naming}
+							<span class="flex items-center gap-1.5">
+								<!-- svelte-ignore a11y_autofocus -->
+								<input
+									class="input h-6 w-44 px-1.5 py-0 text-xs"
+									placeholder="Name this version"
+									autofocus
+									bind:value={keepName}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.preventDefault();
+											void pin();
+										} else if (e.key === 'Escape') {
+											naming = false;
+										}
+									}}
+								/>
+								<button type="button" class="hover:text-amber-300" onclick={() => void pin()}
+									>Keep</button
+								>
+								<button type="button" class="hover:text-slate-300" onclick={() => (naming = false)}
+									>Cancel</button
+								>
+							</span>
+						{:else}
+							<button
+								type="button"
+								class="hover:text-amber-300"
+								onclick={() => ((naming = true), (kept = false))}>Keep this version</button
+							>
+						{/if}
 						{#if kept}<span class="text-emerald-400">kept ✓</span>{/if}
 					</span>
 					<span class="flex items-center gap-2">
