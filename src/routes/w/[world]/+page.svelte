@@ -8,6 +8,8 @@
 	const words = $derived(data.manuscripts.reduce((n, m) => n + m.wordCount, 0));
 </script>
 
+<svelte:head><title>{data.world.name} · Loreforge</title></svelte:head>
+
 <header class="mb-8">
 	<h1 class="text-3xl font-bold text-slate-50">{data.world.name}</h1>
 	{#if data.world.description}<p class="muted mt-1 max-w-2xl">{data.world.description}</p>{/if}

@@ -1,3 +1,4 @@
-# allow crawling everything by default
+# Loreforge is a private, usually authenticated instance: nothing here is meant
+# for a search index. Remove these two lines if you deliberately run it publicly.
 User-agent: *
-Disallow:
+Disallow: /

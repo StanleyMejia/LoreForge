@@ -12,8 +12,6 @@
 		exact ? path === href : path === href || path.startsWith(href + '/');
 </script>
 
-<svelte:head><title>{data.world.name} · Loreforge</title></svelte:head>
-
 <div class="flex min-h-screen">
 	<!-- mobile top bar -->
 	<div
