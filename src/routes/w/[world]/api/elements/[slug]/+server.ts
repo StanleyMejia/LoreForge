@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getTypeById, getWorldBySlug } from '$lib/server/repo/worlds';
+import { getTypeById } from '$lib/server/repo/worlds';
 import { getElement, getElementsByIds } from '$lib/server/repo/elements';
 
 /**
@@ -8,10 +8,10 @@ import { getElement, getElementsByIds } from '$lib/server/repo/elements';
  * attributes from info panels (element refs resolved to names) and a short excerpt
  * of the first text panel.
  */
-export const GET: RequestHandler = ({ params }) => {
-	const world = getWorldBySlug(params.world);
-	const el = world && getElement(world.id, params.slug);
-	if (!world || !el) error(404);
+export const GET: RequestHandler = ({ params, locals }) => {
+	const world = locals.world!;
+	const el = getElement(world.id, params.slug);
+	if (!el) error(404);
 	const type = getTypeById(el.typeId);
 
 	const refIds: string[] = [];

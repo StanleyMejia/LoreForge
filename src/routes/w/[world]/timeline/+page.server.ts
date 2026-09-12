@@ -1,6 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getWorldBySlug } from '$lib/server/repo/worlds';
 import {
 	createEvent,
 	deleteEvent,
@@ -39,9 +38,8 @@ function readEvent(form: FormData): EventInput {
 }
 
 export const actions: Actions = {
-	create: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	create: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const input = readEvent(form);
 		if (!input.title) return fail(400, { error: 'Title is required.' });
@@ -49,9 +47,8 @@ export const actions: Actions = {
 		const ev = createEvent(world.id, input);
 		redirect(303, `/w/${world.slug}/timeline#${ev.id}`);
 	},
-	update: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	update: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const id = str(form, 'id');
 		if (!getEvent(world.id, id)) error(404);
@@ -60,9 +57,8 @@ export const actions: Actions = {
 		updateEvent(world.id, id, input);
 		redirect(303, `/w/${world.slug}/timeline#${id}`);
 	},
-	delete: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	delete: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		deleteEvent(world.id, str(form, 'id'));
 		redirect(303, `/w/${world.slug}/timeline`);

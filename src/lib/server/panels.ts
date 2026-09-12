@@ -1,35 +1,30 @@
 import type { FieldDef, FieldKind, Panel, PanelKind } from '$lib/types';
 import { newId } from '$lib/types';
 import { slugify } from '$lib/slug';
+import { num, str } from './coerce';
 
 const FIELD_KINDS: FieldKind[] = ['text', 'textarea', 'number', 'select', 'element'];
 const PANEL_KINDS: PanelKind[] = ['info', 'text', 'list', 'stats', 'links', 'gallery', 'map'];
 const IMAGE_URL = /^(https?:\/\/|\/|data:image\/)/i;
 
-const s = (v: unknown, max = 20000) => (typeof v === 'string' ? v.slice(0, max) : '');
-const n = (v: unknown, fallback = 0) => {
-	const x = typeof v === 'number' ? v : Number(v);
-	return Number.isFinite(x) ? x : fallback;
-};
-
 /** Validate attribute definitions; drops rows without a label, de-duplicates keys. */
-export function cleanFields(raw: unknown): FieldDef[] {
+function cleanFields(raw: unknown): FieldDef[] {
 	if (!Array.isArray(raw)) return [];
 	const out: FieldDef[] = [];
 	const keys = new Set<string>();
 	for (const f of raw as Partial<FieldDef>[]) {
-		const label = s(f?.label, 200).trim();
+		const label = str(f?.label, 200).trim();
 		if (!label) continue;
 		const kind = FIELD_KINDS.includes(f.kind as FieldKind) ? (f.kind as FieldKind) : 'text';
-		let key = s(f.key, 100).trim() || slugify(label).replace(/-/g, '_');
+		let key = str(f.key, 100).trim() || slugify(label).replace(/-/g, '_');
 		while (keys.has(key)) key += '_';
 		keys.add(key);
 		const def: FieldDef = { key, label, kind };
 		if (kind === 'select')
 			def.options = (Array.isArray(f.options) ? f.options : [])
-				.map((o) => s(o, 200).trim())
+				.map((o) => str(o, 200).trim())
 				.filter(Boolean);
-		if (kind === 'element') def.ref = s(f.ref, 100).trim();
+		if (kind === 'element') def.ref = str(f.ref, 100).trim();
 		out.push(def);
 	}
 	return out;
@@ -45,17 +40,17 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 	const ids = new Set<string>();
 	for (const p of raw as Record<string, unknown>[]) {
 		if (!p || !PANEL_KINDS.includes(p.kind as PanelKind)) continue;
-		let id = s(p.id, 40) || newId();
+		let id = str(p.id, 40) || newId();
 		while (ids.has(id)) id = newId();
 		ids.add(id);
-		const title = s(p.title, 200).trim() || 'Panel';
+		const title = str(p.title, 200).trim() || 'Panel';
 		switch (p.kind as PanelKind) {
 			case 'info': {
 				const fields = cleanFields(p.fields);
 				const values: Record<string, string> = {};
 				if (!template && p.values && typeof p.values === 'object') {
 					for (const f of fields) {
-						const v = s((p.values as Record<string, unknown>)[f.key], 5000).trim();
+						const v = str((p.values as Record<string, unknown>)[f.key], 5000).trim();
 						if (v) values[f.key] = v;
 					}
 				}
@@ -63,7 +58,7 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 				break;
 			}
 			case 'text':
-				out.push({ id, kind: 'text', title, body: template ? '' : s(p.body, 200000) });
+				out.push({ id, kind: 'text', title, body: template ? '' : str(p.body, 200000) });
 				break;
 			case 'list':
 				out.push({
@@ -74,8 +69,8 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 						? []
 						: (Array.isArray(p.items) ? p.items : [])
 								.map((i: Record<string, unknown>) => ({
-									name: s(i?.name, 500).trim(),
-									text: s(i?.text, 5000)
+									name: str(i?.name, 500).trim(),
+									text: str(i?.text, 5000)
 								}))
 								.filter((i) => i.name || i.text.trim())
 				});
@@ -89,9 +84,9 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 						? []
 						: (Array.isArray(p.stats) ? p.stats : [])
 								.map((i: Record<string, unknown>) => ({
-									name: s(i?.name, 200).trim(),
-									value: n(i?.value),
-									max: n(i?.max, 0)
+									name: str(i?.name, 200).trim(),
+									value: num(i?.value),
+									max: num(i?.max, 0)
 								}))
 								.filter((i) => i.name)
 				});
@@ -105,8 +100,8 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 						? []
 						: (Array.isArray(p.links) ? p.links : [])
 								.map((i: Record<string, unknown>) => ({
-									elementId: s(i?.elementId, 80),
-									note: s(i?.note, 500).trim()
+									elementId: str(i?.elementId, 80),
+									note: str(i?.note, 500).trim()
 								}))
 								.filter((i) => i.elementId)
 				});
@@ -120,14 +115,14 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 						? []
 						: (Array.isArray(p.images) ? p.images : [])
 								.map((i: Record<string, unknown>) => ({
-									url: s(i?.url, 2000).trim(),
-									caption: s(i?.caption, 500).trim()
+									url: str(i?.url, 2000).trim(),
+									caption: str(i?.caption, 500).trim()
 								}))
 								.filter((i) => IMAGE_URL.test(i.url))
 				});
 				break;
 			case 'map': {
-				const url = s(p.imageUrl, 2000).trim();
+				const url = str(p.imageUrl, 2000).trim();
 				const seen = new Set<string>();
 				out.push({
 					id,
@@ -138,17 +133,17 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 						? []
 						: (Array.isArray(p.pins) ? p.pins : [])
 								.map((i: Record<string, unknown>) => {
-									let pid = s(i?.id, 40) || newId();
+									let pid = str(i?.id, 40) || newId();
 									while (seen.has(pid)) pid = newId();
 									seen.add(pid);
-									const clamp = (v: unknown) => Math.min(1, Math.max(0, n(v, 0.5)));
-									const color = s(i?.color, 9).trim();
+									const clamp = (v: unknown) => Math.min(1, Math.max(0, num(v, 0.5)));
+									const color = str(i?.color, 9).trim();
 									return {
 										id: pid,
 										x: clamp(i?.x),
 										y: clamp(i?.y),
-										label: s(i?.label, 120).trim(),
-										elementId: s(i?.elementId, 80),
+										label: str(i?.label, 120).trim(),
+										elementId: str(i?.elementId, 80),
 										color: /^#[0-9a-f]{6}$/i.test(color) ? color : '#f59e0b'
 									};
 								})

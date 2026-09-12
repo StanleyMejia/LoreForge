@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { fmtNumber } from '$lib/format';
-
 	let { data } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
 	const mbase = $derived(`${base}/m/${data.manuscript.id}`);
@@ -17,7 +15,7 @@
 			<span class="mx-1">/</span>
 			<span class="text-slate-300">Read</span>
 		</div>
-		<span>{data.chapters.length} chapters · {fmtNumber(data.total)} words</span>
+		<span>{data.chapters.length} chapters · {data.total.toLocaleString('en')} words</span>
 	</nav>
 
 	<div class="grid gap-10 lg:grid-cols-[220px_1fr]">
@@ -67,9 +65,8 @@
 						<p class="muted italic">This chapter has no text yet.</p>
 					{/if}
 					<p class="mt-4 text-right text-xs text-slate-600">
-						<a href="{mbase}/c/{c.id}" class="hover:text-amber-300">Edit chapter ✎</a> · {fmtNumber(
-							c.wordCount
-						)} words · {c.status}
+						<a href="{mbase}/c/{c.id}" class="hover:text-amber-300">Edit chapter ✎</a> ·
+						{c.wordCount.toLocaleString('en')} words · {c.status}
 					</p>
 				</section>
 			{:else}

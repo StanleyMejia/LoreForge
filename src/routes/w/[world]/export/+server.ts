@@ -1,11 +1,9 @@
-import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getWorldBySlug } from '$lib/server/repo/worlds';
 import { exportWorld } from '$lib/server/repo/export';
 
-export const GET: RequestHandler = ({ params }) => {
-	const world = getWorldBySlug(params.world);
-	if (!world) error(404);
+export const GET: RequestHandler = ({ locals }) => {
+	const world = locals.world!;
 	const data = exportWorld(world.id);
 	const stamp = new Date().toISOString().slice(0, 10);
 	return new Response(JSON.stringify(data, null, 2), {

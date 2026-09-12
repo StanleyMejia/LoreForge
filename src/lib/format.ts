@@ -10,7 +10,3 @@ export function timeAgo(d: Date | number | string): string {
 	if (abs < 86400 * 30) return rtf.format(Math.round(diff / 86400), 'day');
 	return new Date(t).toLocaleDateString();
 }
-
-export function fmtNumber(n: number): string {
-	return new Intl.NumberFormat('en').format(n);
-}

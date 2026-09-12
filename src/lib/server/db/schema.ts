@@ -192,13 +192,11 @@ export const chapterRefs = sqliteTable(
 );
 
 export type World = typeof worlds.$inferSelect;
-export type ElementType = typeof elementTypes.$inferSelect;
 export type Element = typeof elements.$inferSelect;
 export type Relationship = typeof relationships.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Manuscript = typeof manuscripts.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
-export type ChapterRef = typeof chapterRefs.$inferSelect;
 
 // ---- authentication --------------------------------------------------------
 
@@ -234,9 +232,6 @@ export const sessions = sqliteTable(
 	},
 	(t) => [index('sessions_user').on(t.userId), index('sessions_expires').on(t.expiresAt)]
 );
-
-export type User = typeof users.$inferSelect;
-export type Session = typeof sessions.$inferSelect;
 
 // ---- ownership & sharing ---------------------------------------------------
 
@@ -281,9 +276,6 @@ export const worldInvites = sqliteTable(
 	},
 	(t) => [index('world_invites_world').on(t.worldId)]
 );
-
-export type WorldMember = typeof worldMembers.$inferSelect;
-export type WorldInvite = typeof worldInvites.$inferSelect;
 
 // ---- uploaded files --------------------------------------------------------
 

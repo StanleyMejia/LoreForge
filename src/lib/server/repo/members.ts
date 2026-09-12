@@ -18,7 +18,7 @@ export function roleFor(worldId: string, userId: string): WorldRole | null {
 	return row?.role ?? null;
 }
 
-export function memberCount(worldId: string): number {
+function memberCount(worldId: string): number {
 	return (
 		db.select({ n: count() }).from(worldMembers).where(eq(worldMembers.worldId, worldId)).get()
 			?.n ?? 0
@@ -69,13 +69,7 @@ export function claimWorld(worldId: string, userId: string, email: string): bool
 	return true;
 }
 
-export function addOwner(worldId: string, userId: string, email: string) {
-	db.insert(worldMembers)
-		.values({ worldId, userId, email: email || `user:${userId}`, role: 'owner' })
-		.run();
-}
-
-export interface MemberView {
+interface MemberView {
 	id: string;
 	email: string;
 	name: string;

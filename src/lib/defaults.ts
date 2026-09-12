@@ -1,6 +1,6 @@
 import type { FieldDef, Panel } from './types';
 
-export interface DefaultType {
+interface DefaultType {
 	key: string;
 	name: string;
 	singular: string;

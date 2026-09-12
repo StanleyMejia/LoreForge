@@ -1,10 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { slugify } from '$lib/slug';
+import { slugify, uniquify } from '$lib/slug';
+import { num, str } from '../coerce';
 import { panelsText, type Panel } from '$lib/types';
 import { cleanPanels } from '../panels';
 import { copyStored } from '../uploads';
 import { syncLinks, syncMapPins } from './elements';
+import { uniqueWorldSlug } from './worlds';
 import { rebuildIndex } from './search';
 
 const {
@@ -20,7 +22,7 @@ const {
 	worldMembers
 } = schema;
 
-export interface ImportSummary {
+interface ImportSummary {
 	slug: string;
 	name: string;
 	counts: Record<string, number>;
@@ -29,8 +31,6 @@ export interface ImportSummary {
 
 export class ImportError extends Error {}
 
-const str = (v: unknown, max = 10000) => (typeof v === 'string' ? v.slice(0, max) : '');
-const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const arr = (v: unknown): Record<string, unknown>[] =>
 	Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
 
@@ -55,14 +55,6 @@ export function parseBundle(text: string): Record<string, unknown> {
 	if (!b.world || typeof b.world !== 'object')
 		throw new ImportError('The export contains no world.');
 	return b;
-}
-
-function uniqueWorldSlug(name: string): string {
-	const base = slugify(name);
-	let slug = base;
-	for (let i = 2; db.select({ id: worlds.id }).from(worlds).where(eq(worlds.slug, slug)).get(); i++)
-		slug = `${base}-${i}`;
-	return slug;
 }
 
 /**
@@ -179,8 +171,9 @@ export function importWorld(
 
 		const usedKeys = new Set<string>();
 		const typeRows = srcTypes.map((t, i) => {
-			let key = slugify(str(t.key, 100) || str(t.singular, 200) || `type-${i}`);
-			for (let n = 2; usedKeys.has(key); n++) key = `${key}-${n}`;
+			const key = uniquify(slugify(str(t.key, 100) || str(t.singular, 200) || `type-${i}`), (k) =>
+				usedKeys.has(k)
+			);
 			usedKeys.add(key);
 			return {
 				id: typeMap.get(str(t.id, 80))!,
@@ -202,15 +195,15 @@ export function importWorld(
 			.map((e) => {
 				const typeId = typeMap.get(str(e.typeId, 80));
 				if (!typeId) return null;
-				const base = slugify(str(e.slug, 200) || str(e.name, 200));
-				let s = base;
-				for (let n = 2; usedSlugs.has(s); n++) s = `${base}-${n}`;
-				usedSlugs.add(s);
+				const slug = uniquify(slugify(str(e.slug, 200) || str(e.name, 200)), (s) =>
+					usedSlugs.has(s)
+				);
+				usedSlugs.add(slug);
 				return {
 					id: elementMap.get(str(e.id, 80))!,
 					worldId,
 					typeId,
-					slug: s,
+					slug,
 					name: str(e.name, 200) || 'Untitled',
 					summary: str(e.summary, 2000),
 					panels: remapPanels(e.panels),

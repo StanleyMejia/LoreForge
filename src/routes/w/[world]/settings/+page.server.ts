@@ -49,9 +49,8 @@ function requireOwner(locals: App.Locals) {
 }
 
 export const actions: Actions = {
-	world: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	world: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const name = str(form, 'name').trim();
 		if (!name) return fail(400, { error: 'Name is required.' });
@@ -60,17 +59,15 @@ export const actions: Actions = {
 	},
 	deleteWorld: async ({ params, request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+		const world = getWorldBySlug(params.world)!;
 		const form = await request.formData();
 		if (str(form, 'confirm') !== world.name)
 			return fail(400, { deleteError: 'Type the world name exactly to confirm.' });
 		deleteWorld(world.id);
 		redirect(303, '/');
 	},
-	addType: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	addType: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const name = str(form, 'name').trim();
 		const singular = str(form, 'singular').trim() || name.replace(/s$/i, '');
@@ -83,9 +80,8 @@ export const actions: Actions = {
 		});
 		return { ok: true };
 	},
-	updateType: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	updateType: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const type = getTypeById(str(form, 'id'));
 		if (!type || type.worldId !== world.id) error(404);
@@ -100,9 +96,8 @@ export const actions: Actions = {
 		});
 		return { ok: true };
 	},
-	moveType: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	moveType: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const id = str(form, 'id');
 		const dir = str(form, 'dir');
@@ -114,19 +109,17 @@ export const actions: Actions = {
 		list.forEach((t, idx) => updateType(t.id, { sortOrder: idx }));
 		return { ok: true };
 	},
-	deleteType: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	deleteType: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const type = getTypeById(str(form, 'id'));
 		if (!type || type.worldId !== world.id) error(404);
 		deleteType(type.id);
 		return { ok: true };
 	},
-	share: async ({ params, request, locals }) => {
+	share: async ({ request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+		const world = locals.world!;
 		const form = await request.formData();
 		const role = str(form, 'role');
 		if (!isRole(role)) return fail(400, { shareError: 'Pick a role.' });
@@ -134,27 +127,25 @@ export const actions: Actions = {
 		if (!r.ok) return fail(400, { shareError: r.error });
 		return { ok: true };
 	},
-	setRole: async ({ params, request, locals }) => {
+	setRole: async ({ request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+		const world = locals.world!;
 		const form = await request.formData();
 		const role = str(form, 'role');
 		if (isRole(role)) setMemberRole(world.id, str(form, 'id'), role);
 		return { ok: true };
 	},
-	removeMember: async ({ params, request, locals }) => {
+	removeMember: async ({ request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+		const world = locals.world!;
 		const form = await request.formData();
 		removeMember(world.id, str(form, 'id'));
 		return { ok: true };
 	},
-	createInvite: async ({ params, request, locals }) => {
+	createInvite: async ({ request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world || !locals.user) error(404);
+		const world = locals.world!;
+		if (!locals.user) error(404);
 		const form = await request.formData();
 		const role = str(form, 'role');
 		createInvite(
@@ -165,30 +156,26 @@ export const actions: Actions = {
 		);
 		return { ok: true };
 	},
-	revokeInvite: async ({ params, request, locals }) => {
+	revokeInvite: async ({ request, locals }) => {
 		requireOwner(locals);
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+		const world = locals.world!;
 		const form = await request.formData();
 		revokeInvite(world.id, str(form, 'id'));
 		return { ok: true };
 	},
-	deleteUpload: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	deleteUpload: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		await deleteUpload(world.id, str(form, 'id'));
 		return { ok: true };
 	},
-	deleteUnusedUploads: async ({ params }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	deleteUnusedUploads: async ({ locals }) => {
+		const world = locals.world!;
 		for (const u of listUploads(world.id)) if (!u.referenced) await deleteUpload(world.id, u.id);
 		return { ok: true };
 	},
-	rebuildIndex: async ({ params }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	rebuildIndex: async ({ locals }) => {
+		const world = locals.world!;
 		rebuildIndex(world.id);
 		return { ok: true, rebuilt: true };
 	}

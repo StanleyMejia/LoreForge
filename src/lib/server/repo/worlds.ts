@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { DEFAULT_TYPES } from '$lib/defaults';
-import { slugify } from '$lib/slug';
+import { slugify, uniquify } from '$lib/slug';
 import { removeWorldDir } from '../uploads';
 
 const { worlds, elementTypes, elements } = schema;
@@ -27,17 +27,10 @@ export function getWorldBySlug(slug: string) {
 	return db.select().from(worlds).where(eq(worlds.slug, slug)).get();
 }
 
-function uniqueWorldSlug(name: string): string {
-	const base = slugify(name);
-	let slug = base;
-	for (
-		let i = 2;
-		db.select({ id: worlds.id }).from(worlds).where(eq(worlds.slug, slug)).get();
-		i++
-	) {
-		slug = `${base}-${i}`;
-	}
-	return slug;
+export function uniqueWorldSlug(name: string): string {
+	return uniquify(slugify(name), (s) =>
+		Boolean(db.select({ id: worlds.id }).from(worlds).where(eq(worlds.slug, s)).get())
+	);
 }
 
 export function createWorld(name: string, description = '', owner?: { id: string; email: string }) {
@@ -141,9 +134,7 @@ export function createType(
 	worldId: string,
 	input: { name: string; singular: string; icon: string; color: string }
 ) {
-	const base = slugify(input.singular || input.name);
-	let key = base;
-	for (let i = 2; getType(worldId, key); i++) key = `${base}-${i}`;
+	const key = uniquify(slugify(input.singular || input.name), (k) => Boolean(getType(worldId, k)));
 	const max =
 		db
 			.select({ m: sql<number>`coalesce(max(${elementTypes.sortOrder}), -1)` })

@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getTypeById, getWorldBySlug } from '$lib/server/repo/worlds';
+import { getTypeById } from '$lib/server/repo/worlds';
 import {
 	backlinks,
 	createRelationship,
@@ -18,7 +18,7 @@ import { appearances } from '$lib/server/repo/manuscripts';
 import type { MapPin, Panel } from '$lib/types';
 
 /** A panel prepared for display: markdown rendered, element refs resolved. */
-export type ViewPanel =
+type ViewPanel =
 	| {
 			id: string;
 			kind: 'info';
@@ -160,18 +160,18 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 };
 
 export const actions: Actions = {
-	delete: async ({ params }) => {
-		const world = getWorldBySlug(params.world);
-		const el = world && getElement(world.id, params.element);
-		if (!world || !el) error(404);
+	delete: async ({ params, locals }) => {
+		const world = locals.world!;
+		const el = getElement(world.id, params.element);
+		if (!el) error(404);
 		const type = getTypeById(el.typeId);
 		deleteElement(el.id);
 		redirect(303, `/w/${world.slug}/t/${type?.key ?? ''}`);
 	},
-	addRelationship: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		const el = world && getElement(world.id, params.element);
-		if (!world || !el) error(404);
+	addRelationship: async ({ params, request, locals }) => {
+		const world = locals.world!;
+		const el = getElement(world.id, params.element);
+		if (!el) error(404);
 		const form = await request.formData();
 		const toId = str(form, 'toId');
 		const label = str(form, 'label').trim();
@@ -188,9 +188,8 @@ export const actions: Actions = {
 		});
 		return { ok: true };
 	},
-	removeRelationship: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	removeRelationship: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		deleteRelationship(str(form, 'id'));
 		return { ok: true };

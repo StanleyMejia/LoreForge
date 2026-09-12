@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { fmtNumber, timeAgo } from '$lib/format';
+	import { timeAgo } from '$lib/format';
 	import { ROLE_LABELS } from '$lib/types';
 
 	let { data, form } = $props();
@@ -30,7 +30,7 @@
 				{data.manuscript.description}
 			</p>{/if}
 		<p class="mt-2 text-xs text-slate-500">
-			{data.chapters.length} chapters · {fmtNumber(total)} words
+			{data.chapters.length} chapters · {total.toLocaleString('en')} words
 		</p>
 	</div>
 	<div class="flex gap-2">
@@ -105,7 +105,9 @@
 							{/if}
 						</a>
 						<span class="text-xs {statusColor[c.status] ?? ''}">{c.status}</span>
-						<span class="w-20 text-right text-xs text-slate-500">{fmtNumber(c.wordCount)} w</span>
+						<span class="w-20 text-right text-xs text-slate-500"
+							>{c.wordCount.toLocaleString('en')} w</span
+						>
 						<span class="hidden w-24 text-right text-xs text-slate-600 sm:block"
 							>{timeAgo(c.updatedAt)}</span
 						>

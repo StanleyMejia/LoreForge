@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { fmtNumber, timeAgo } from '$lib/format';
+	import { timeAgo } from '$lib/format';
 
 	let { data, form } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
@@ -20,7 +20,7 @@
 							<h2 class="text-lg font-semibold text-slate-50">{m.title}</h2>
 							{#if m.description}<p class="muted mt-1">{m.description}</p>{/if}
 							<p class="mt-2 text-xs text-slate-500">
-								{m.chapterCount} chapters · {fmtNumber(m.wordCount)} words · updated {timeAgo(
+								{m.chapterCount} chapters · {m.wordCount.toLocaleString('en')} words · updated {timeAgo(
 									m.updatedAt
 								)}
 							</p>

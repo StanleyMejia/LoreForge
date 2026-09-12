@@ -9,7 +9,7 @@ import type { Profile } from './profile';
 let configPromise: Promise<client.Configuration> | null = null;
 
 /** Discover the provider once and cache it. Retries on the next call if discovery failed. */
-export function getConfig(): Promise<client.Configuration> {
+function getConfig(): Promise<client.Configuration> {
 	if (!configPromise) {
 		const issuer = new URL(authConfig.issuer);
 		const insecure = issuer.protocol === 'http:';
