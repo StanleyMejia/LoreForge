@@ -1,12 +1,10 @@
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getWorldBySlug } from '$lib/server/repo/worlds';
 import { searchWorld } from '$lib/server/repo/search';
 
 /** Top hits for the sidebar search dropdown. */
-export const GET: RequestHandler = ({ params, url }) => {
-	const world = getWorldBySlug(params.world);
-	if (!world) error(404);
+export const GET: RequestHandler = ({ url, locals }) => {
+	const world = locals.world!;
 	const q = url.searchParams.get('q')?.trim() ?? '';
 	if (q.length < 2) return json([]);
 	try {

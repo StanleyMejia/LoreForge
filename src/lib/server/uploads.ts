@@ -45,7 +45,7 @@ export function sniffImage(bytes: Uint8Array): { mime: string; ext: string } | n
 }
 
 /** Absolute path for a stored file; refuses anything that escapes UPLOADS_DIR. */
-export function absolutePath(storagePath: string): string {
+function absolutePath(storagePath: string): string {
 	const abs = resolve(UPLOADS_DIR, storagePath);
 	if (abs !== UPLOADS_DIR && !abs.startsWith(UPLOADS_DIR + sep))
 		throw new Error('invalid storage path');

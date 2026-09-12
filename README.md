@@ -175,7 +175,8 @@ Access is enforced in one place (`src/hooks.server.ts`): non-members get a 404 f
 
 ```bash
 git clone https://github.com/StanleyMejia/LoreForge.git && cd LoreForge
-docker compose -f docker-compose.build.yml up -d --build
+sed -i 's|# build: .|build: .|' docker-compose.yml
+docker compose up -d --build
 ```
 
 ### Bare metal

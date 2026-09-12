@@ -1,6 +1,5 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getWorldBySlug } from '$lib/server/repo/worlds';
 import { createChapter, createManuscript, latestChapter } from '$lib/server/repo/manuscripts';
 import { str } from '$lib/server/form';
 
@@ -13,9 +12,8 @@ export const load: PageServerLoad = async ({ parent }) => {
 };
 
 export const actions: Actions = {
-	start: async ({ params, request }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	start: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const title = str(form, 'title').trim() || 'Untitled manuscript';
 		const m = createManuscript(world.id, title);

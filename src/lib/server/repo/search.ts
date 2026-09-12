@@ -1,14 +1,11 @@
 import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
+import { MARK_CLOSE, MARK_OPEN } from '$lib/snippet';
 import { panelsText, type Panel } from '$lib/types';
 
 const { elements, elementTypes, events, chapters, manuscripts } = schema;
 
-export type SearchKind = 'element' | 'chapter' | 'event';
-
-/** Private markers used by snippet(); the page escapes the text and then turns these into <mark>. */
-export const MARK_OPEN = String.fromCharCode(1);
-export const MARK_CLOSE = String.fromCharCode(2);
+type SearchKind = 'element' | 'chapter' | 'event';
 
 // ---- indexing (search_index is an FTS5 virtual table created by migration 0005) ------------
 
@@ -101,11 +98,10 @@ export function indexNeedsRebuild(): boolean {
 // ---- querying ----------------------------------------------------------------------------
 
 /** Turn free text into a safe FTS5 MATCH expression: quoted tokens, last one as a prefix. */
-export function toMatchQuery(q: string): string {
+function toMatchQuery(q: string): string {
 	const tokens = q
 		.replace(/["'*^()]/g, ' ')
 		.split(/\s+/)
-		.map((t) => t.trim())
 		.filter(Boolean)
 		.slice(0, 12);
 	if (tokens.length === 0) return '';

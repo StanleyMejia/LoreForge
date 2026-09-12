@@ -1,6 +1,5 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getWorldBySlug } from '$lib/server/repo/worlds';
 import { createUpload } from '$lib/server/repo/uploads';
 import { MAX_UPLOAD_BYTES, sniffImage } from '$lib/server/uploads';
 
@@ -8,11 +7,10 @@ import { MAX_UPLOAD_BYTES, sniffImage } from '$lib/server/uploads';
  * Upload an image (multipart field `file`). Editor role is enforced by hooks.server.ts.
  * Returns the URL to use anywhere an image URL is accepted.
  */
-export const POST: RequestHandler = async ({ params, request, url, locals }) => {
+export const POST: RequestHandler = async ({ request, url, locals }) => {
 	const origin = request.headers.get('origin');
 	if (origin && origin !== url.origin) error(403, 'Cross-origin request rejected');
-	const world = getWorldBySlug(params.world);
-	if (!world) error(404);
+	const world = locals.world!;
 
 	let form: FormData;
 	try {

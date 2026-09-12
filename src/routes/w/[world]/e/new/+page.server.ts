@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getType, getTypeById, getWorldBySlug, listTypes } from '$lib/server/repo/worlds';
+import { getType, getTypeById, listTypes } from '$lib/server/repo/worlds';
 import { createElement } from '$lib/server/repo/elements';
 import { readElementInput } from '$lib/server/element-form';
 import { str } from '$lib/server/form';
@@ -14,9 +14,8 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, params }) => {
-		const world = getWorldBySlug(params.world);
-		if (!world) error(404);
+	default: async ({ request, locals }) => {
+		const world = locals.world!;
 		const form = await request.formData();
 		const type = getTypeById(str(form, 'typeId')) ?? listTypes(world.id)[0];
 		if (!type || type.worldId !== world.id) return fail(400, { error: 'Invalid type.' });

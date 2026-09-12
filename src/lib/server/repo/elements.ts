@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
-import { slugify } from '$lib/slug';
+import { slugify, uniquify } from '$lib/slug';
 import { extractWikiLinks } from '$lib/markdown';
 import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
 import { touchWorld } from './worlds';
@@ -8,7 +8,7 @@ import { indexElement, removeFromIndex } from './search';
 
 const { elements, elementTypes, links, relationships, mapPins } = schema;
 
-export type LinkKind = 'element' | 'event' | 'chapter';
+type LinkKind = 'element' | 'event' | 'chapter';
 
 const listCols = {
 	id: elements.id,
@@ -91,13 +91,10 @@ export function getElementsByIds(ids: string[]) {
 }
 
 function uniqueSlug(worldId: string, name: string, excludeId?: string) {
-	const base = slugify(name);
-	let slug = base;
-	for (let i = 2; ; i++) {
-		const hit = getElement(worldId, slug);
-		if (!hit || hit.id === excludeId) return slug;
-		slug = `${base}-${i}`;
-	}
+	return uniquify(slugify(name), (s) => {
+		const hit = getElement(worldId, s);
+		return !!hit && hit.id !== excludeId;
+	});
 }
 
 export interface ElementInput {
@@ -202,7 +199,7 @@ export function syncLinks(worldId: string, kind: LinkKind, sourceId: string, bod
 		.run();
 }
 
-export interface Backlink {
+interface Backlink {
 	kind: LinkKind;
 	id: string;
 	title: string;
@@ -266,7 +263,7 @@ export function backlinks(worldSlug: string, elementId: string): Backlink[] {
 
 // ---- relationships -------------------------------------------------------
 
-export interface RelationshipView {
+interface RelationshipView {
 	id: string;
 	label: string;
 	notes: string;
@@ -327,28 +324,6 @@ export function allRelationships(worldId: string) {
 
 // ---- search --------------------------------------------------------------
 
-export function searchElements(worldId: string, q: string, limit = 50) {
-	const term = `%${q.replace(/[%_]/g, (c) => `\\${c}`)}%`;
-	return db
-		.select(listCols)
-		.from(elements)
-		.innerJoin(elementTypes, eq(elementTypes.id, elements.typeId))
-		.where(
-			and(
-				eq(elements.worldId, worldId),
-				or(
-					sql`${elements.name} like ${term} escape '\\'`,
-					sql`${elements.summary} like ${term} escape '\\'`,
-					sql`${elements.panels} like ${term} escape '\\'`,
-					sql`${elements.tags} like ${term} escape '\\'`
-				)
-			)
-		)
-		.orderBy(asc(elements.name))
-		.limit(limit)
-		.all();
-}
-
 export function elementsByTag(worldId: string, tag: string) {
 	return db
 		.select(listCols)
@@ -397,7 +372,7 @@ export function syncMapPins(worldId: string, mapElementId: string, panels: Panel
 	if (keep.length) db.insert(mapPins).values(keep).run();
 }
 
-export interface OnMap {
+interface OnMap {
 	mapId: string;
 	mapName: string;
 	mapSlug: string;

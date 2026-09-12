@@ -18,33 +18,33 @@ interface PanelBase {
 	title: string;
 }
 /** Key/value attributes. Field definitions live on the panel so each element can add its own. */
-export interface InfoPanel extends PanelBase {
+interface InfoPanel extends PanelBase {
 	kind: 'info';
 	fields: FieldDef[];
 	values: Record<string, string>;
 }
 /** Free-form markdown. Supports [[wiki links]]. */
-export interface TextPanel extends PanelBase {
+interface TextPanel extends PanelBase {
 	kind: 'text';
 	body: string;
 }
 /** Organised list: named items with a short description. */
-export interface ListPanel extends PanelBase {
+interface ListPanel extends PanelBase {
 	kind: 'list';
 	items: { name: string; text: string }[];
 }
 /** Numeric stats rendered as bars. */
-export interface StatsPanel extends PanelBase {
+interface StatsPanel extends PanelBase {
 	kind: 'stats';
 	stats: { name: string; value: number; max: number }[];
 }
 /** Curated links to other elements. */
-export interface LinksPanel extends PanelBase {
+interface LinksPanel extends PanelBase {
 	kind: 'links';
 	links: { elementId: string; note: string }[];
 }
 /** Image gallery by URL. */
-export interface GalleryPanel extends PanelBase {
+interface GalleryPanel extends PanelBase {
 	kind: 'gallery';
 	images: { url: string; caption: string }[];
 }

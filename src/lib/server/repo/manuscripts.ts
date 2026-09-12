@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { countWords } from '$lib/slug';
 import { syncLinks } from './elements';
@@ -87,14 +87,6 @@ export function listChapters(manuscriptId: string) {
 		.all();
 }
 
-export function getChapter(manuscriptId: string, id: string) {
-	return db
-		.select()
-		.from(chapters)
-		.where(and(eq(chapters.manuscriptId, manuscriptId), eq(chapters.id, id)))
-		.get();
-}
-
 export function createChapter(manuscriptId: string, title: string) {
 	const max =
 		db
@@ -114,7 +106,7 @@ export function createChapter(manuscriptId: string, title: string) {
 	return row;
 }
 
-export interface ChapterInput {
+interface ChapterInput {
 	title: string;
 	synopsis?: string;
 	body?: string;
@@ -183,18 +175,6 @@ export function moveChapter(manuscriptId: string, id: string, dir: 'up' | 'down'
 	});
 }
 
-/** Adjacent chapters for prev/next navigation in the editor. */
-export function chapterNeighbours(manuscriptId: string, id: string) {
-	const list = listChapters(manuscriptId);
-	const i = list.findIndex((c) => c.id === id);
-	return {
-		prev: i > 0 ? list[i - 1] : null,
-		next: i >= 0 && i < list.length - 1 ? list[i + 1] : null,
-		index: i,
-		total: list.length
-	};
-}
-
 // ---- cross references ----------------------------------------------------
 
 const { chapterRefs, elements, elementTypes } = schema;
@@ -237,7 +217,7 @@ export function setChapterRefs(worldId: string, chapterId: string, refs: RefInpu
 	});
 }
 
-export interface ChapterRefView {
+interface ChapterRefView {
 	elementId: string;
 	role: ChapterRole;
 	note: string;
@@ -299,7 +279,7 @@ export function refsByChapter(manuscriptId: string): Map<string, ChapterRefView[
 	return out;
 }
 
-export interface Appearance {
+interface Appearance {
 	manuscriptId: string;
 	manuscriptTitle: string;
 	chapterId: string;
@@ -360,7 +340,7 @@ export function appearances(elementId: string): Appearance[] {
 	});
 }
 
-export interface CastEntry {
+interface CastEntry {
 	elementId: string;
 	name: string;
 	slug: string;
@@ -458,36 +438,6 @@ export function chaptersForEvents(eventIds: string[]) {
 	return out;
 }
 
-/** Full-text-ish search across chapters of a world. */
-export function searchChapters(worldId: string, q: string, limit = 30) {
-	const term = `%${q.replace(/[%_]/g, (c) => `\\${c}`)}%`;
-	return db
-		.select({
-			id: chapters.id,
-			title: chapters.title,
-			synopsis: chapters.synopsis,
-			status: chapters.status,
-			wordCount: chapters.wordCount,
-			manuscriptId: manuscripts.id,
-			manuscriptTitle: manuscripts.title
-		})
-		.from(chapters)
-		.innerJoin(manuscripts, eq(manuscripts.id, chapters.manuscriptId))
-		.where(
-			and(
-				eq(manuscripts.worldId, worldId),
-				or(
-					sql`${chapters.title} like ${term} escape '\\'`,
-					sql`${chapters.synopsis} like ${term} escape '\\'`,
-					sql`${chapters.body} like ${term} escape '\\'`
-				)
-			)
-		)
-		.orderBy(asc(manuscripts.sortOrder), asc(chapters.sortOrder))
-		.limit(limit)
-		.all();
-}
-
 /** All chapters of a manuscript with bodies, for the read-through view. */
 export function readManuscript(manuscriptId: string) {
 	return db
@@ -530,7 +480,7 @@ export function getChapterInWorld(worldId: string, chapterId: string) {
 		.get();
 }
 
-export interface BinderManuscript {
+interface BinderManuscript {
 	id: string;
 	title: string;
 	wordCount: number;

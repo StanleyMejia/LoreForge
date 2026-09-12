@@ -1,6 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { getWorldBySlug } from '$lib/server/repo/worlds';
 import {
 	binder,
 	chapterRefsFor,
@@ -26,17 +25,17 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 	};
 };
 
-function ctx(params: { world: string; chapter: string }) {
-	const world = getWorldBySlug(params.world);
-	const chapter = world && getChapterInWorld(world.id, params.chapter);
-	if (!world || !chapter) error(404);
+function ctx(locals: App.Locals, chapterId: string) {
+	const world = locals.world!;
+	const chapter = getChapterInWorld(world.id, chapterId);
+	if (!chapter) error(404);
 	return { world, chapter };
 }
 
 export const actions: Actions = {
 	/** New chapter in a manuscript of this world (defaults to the current one). */
-	addChapter: async ({ params, request }) => {
-		const { world, chapter } = ctx(params);
+	addChapter: async ({ params, request, locals }) => {
+		const { world, chapter } = ctx(locals, params.chapter);
 		const form = await request.formData();
 		const manuscriptId = str(form, 'manuscriptId') || chapter.manuscriptId;
 		const m = getManuscript(world.id, manuscriptId);
@@ -48,8 +47,8 @@ export const actions: Actions = {
 		);
 		redirect(303, `/w/${world.slug}/write/${c.id}`);
 	},
-	addManuscript: async ({ params, request }) => {
-		const { world } = ctx(params);
+	addManuscript: async ({ params, request, locals }) => {
+		const { world } = ctx(locals, params.chapter);
 		const form = await request.formData();
 		const title = str(form, 'title').trim();
 		if (!title) return fail(400, { error: 'Give the manuscript a title.' });
@@ -57,14 +56,14 @@ export const actions: Actions = {
 		const c = createChapter(m.id, 'Chapter 1');
 		redirect(303, `/w/${world.slug}/write/${c.id}`);
 	},
-	move: async ({ params, request }) => {
-		const { chapter } = ctx(params);
+	move: async ({ params, request, locals }) => {
+		const { chapter } = ctx(locals, params.chapter);
 		const form = await request.formData();
 		moveChapter(chapter.manuscriptId, chapter.id, str(form, 'dir') === 'up' ? 'up' : 'down');
 		return { ok: true };
 	},
-	delete: async ({ params }) => {
-		const { world, chapter } = ctx(params);
+	delete: async ({ params, locals }) => {
+		const { world, chapter } = ctx(locals, params.chapter);
 		deleteChapter(chapter.manuscriptId, chapter.id);
 		redirect(303, `/w/${world.slug}/write`);
 	}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ElementCard from '$lib/components/ElementCard.svelte';
-	import { fmtNumber, timeAgo } from '$lib/format';
+	import { timeAgo } from '$lib/format';
 
 	let { data } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
@@ -12,9 +12,8 @@
 	<h1 class="text-3xl font-bold text-slate-50">{data.world.name}</h1>
 	{#if data.world.description}<p class="muted mt-1 max-w-2xl">{data.world.description}</p>{/if}
 	<p class="mt-2 text-xs text-slate-500">
-		{fmtNumber(total)} elements · {data.eventCount} events · {data.manuscripts.length} manuscripts · {fmtNumber(
-			words
-		)} words written
+		{total.toLocaleString('en')} elements · {data.eventCount} events · {data.manuscripts.length}
+		manuscripts · {words.toLocaleString('en')} words written
 	</p>
 </header>
 
@@ -66,7 +65,7 @@
 					<div class="text-xs text-amber-400">✍️ Continue writing</div>
 					<div class="mt-0.5 truncate font-semibold text-slate-50">{data.latest.title}</div>
 					<div class="text-xs text-slate-500">
-						{data.latest.manuscriptTitle} · {fmtNumber(data.latest.wordCount)} words · {timeAgo(
+						{data.latest.manuscriptTitle} · {data.latest.wordCount.toLocaleString('en')} words · {timeAgo(
 							data.latest.updatedAt
 						)}
 					</div>
@@ -88,7 +87,7 @@
 							<a href="{base}/m/{m.id}" class="card block hover:border-slate-600">
 								<div class="font-semibold">{m.title}</div>
 								<div class="text-xs text-slate-500">
-									{m.chapterCount} chapters · {fmtNumber(m.wordCount)} words · {timeAgo(
+									{m.chapterCount} chapters · {m.wordCount.toLocaleString('en')} words · {timeAgo(
 										m.updatedAt
 									)}
 								</div>

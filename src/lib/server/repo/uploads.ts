@@ -45,7 +45,7 @@ export async function deleteUpload(worldId: string, id: string) {
 	return true;
 }
 
-export interface UploadUsage {
+interface UploadUsage {
 	id: string;
 	filename: string;
 	mime: string;

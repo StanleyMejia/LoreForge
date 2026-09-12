@@ -4,7 +4,6 @@
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 	import ChapterReferences from '$lib/components/ChapterReferences.svelte';
 	import { CHAPTER_STATUSES } from '$lib/types';
-	import { fmtNumber } from '$lib/format';
 	import { countWords } from '$lib/slug';
 
 	let { data, form } = $props();
@@ -163,7 +162,7 @@
 								class="truncate font-semibold text-slate-200 hover:text-amber-300"
 								title="Manuscript overview">📖 {m.title}</a
 							>
-							<span class="text-[10px] text-slate-600">{fmtNumber(m.wordCount)}</span>
+							<span class="text-[10px] text-slate-600">{m.wordCount.toLocaleString('en')}</span>
 						</div>
 						<ol class="mt-1">
 							{#each m.chapters as c, i (c.id)}
@@ -251,9 +250,9 @@
 					{:else}All changes saved{/if}
 				</span>
 				<span
-					>{fmtNumber(words)} words{#if session !== 0}
+					>{words.toLocaleString('en')} words{#if session !== 0}
 						· <span class={session > 0 ? 'text-emerald-400' : 'text-red-400'}
-							>{session > 0 ? '+' : ''}{fmtNumber(session)} this session</span
+							>{session > 0 ? '+' : ''}{session.toLocaleString('en')} this session</span
 						>{/if}</span
 				>
 				<button

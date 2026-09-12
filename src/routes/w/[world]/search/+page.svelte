@@ -42,9 +42,6 @@
 	<p class="muted mb-4">
 		{data.hits.length} result{data.hits.length === 1 ? '' : 's'} for
 		<span class="text-slate-200">“{data.q}”</span>
-		{#if data.fallback}<span class="ml-2 text-amber-400"
-				>(simple match; the query could not be parsed for full-text search)</span
-			>{/if}
 	</p>
 	{#each groups as g (g.kind)}
 		<section class="mb-8" data-role="search-{g.kind}">
