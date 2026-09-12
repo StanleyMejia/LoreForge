@@ -54,6 +54,17 @@ interface UploadUsage {
 	referenced: boolean;
 }
 
+/** Bytes of images a world is currently holding. */
+export function uploadBytes(worldId: string): number {
+	return (
+		db
+			.select({ total: sql<number>`coalesce(sum(${uploads.size}), 0)` })
+			.from(uploads)
+			.where(eq(uploads.worldId, worldId))
+			.get()?.total ?? 0
+	);
+}
+
 /** Every upload of a world, flagged by whether any content still points at `files/<id>`. */
 export function listUploads(worldId: string): UploadUsage[] {
 	const rows = db

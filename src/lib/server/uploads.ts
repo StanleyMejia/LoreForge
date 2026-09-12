@@ -9,6 +9,16 @@ export const UPLOADS_DIR = resolve(
 	env.UPLOADS_DIR || join(dirname(env.DATABASE_URL || 'data/loreforge.db'), 'uploads')
 );
 export const MAX_UPLOAD_BYTES = Math.max(1, Number(env.MAX_UPLOAD_MB) || 10) * 1024 * 1024;
+/**
+ * Total image bytes one world may hold. A per-file cap alone does not stop a signed-in user — or
+ * a stolen session — from filling the disk one legitimate file at a time. Set 0 for no limit.
+ */
+export const MAX_WORLD_UPLOAD_BYTES =
+	(env.MAX_WORLD_UPLOAD_MB === undefined
+		? 2048
+		: Math.max(0, Number(env.MAX_WORLD_UPLOAD_MB) || 0)) *
+	1024 *
+	1024;
 
 const SIGNATURES: { mime: string; ext: string; test: (b: Uint8Array) => boolean }[] = [
 	{

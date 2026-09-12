@@ -71,6 +71,13 @@
       "when": 1789249294003,
       "tag": "0009_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789255079666,
+      "tag": "0010_invite_max_uses",
+      "breakpoints": true
     }
   ]
 }

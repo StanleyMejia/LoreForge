@@ -39,6 +39,28 @@ if (authConfig.enabled && (env.PROTOCOL_HEADER || env.HOST_HEADER) && !env.ADDRE
 	);
 }
 
+/**
+ * A ceiling on writes by an already-authenticated caller. Autosave is the busiest legitimate
+ * writer at roughly four requests a minute per open chapter, so this is far above normal use and
+ * only catches a runaway script or an abused session.
+ */
+const WRITE_LIMIT = 300;
+const WRITE_WINDOW_MS = 60_000;
+const writeHits = new Map<string, Window>();
+
+function writeLimit(event: Parameters<Handle>[0]['event']): Response | undefined {
+	if (['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) return;
+	if (writeHits.size > 5000) sweep(writeHits);
+	// Keyed by account where there is one, so one user cannot spend another's allowance.
+	const who = event.locals.user?.id ?? event.getClientAddress();
+	const { ok, retryAfter } = countRequest(writeHits, who, WRITE_LIMIT, WRITE_WINDOW_MS);
+	if (ok) return;
+	return new Response('Too many requests', {
+		status: 429,
+		headers: { 'retry-after': String(retryAfter) }
+	});
+}
+
 function signinLimit(event: Parameters<Handle>[0]['event']): Response | undefined {
 	const path = event.url.pathname;
 	const rule = SIGNIN_LIMITS.find((r) => r.path.test(path));
@@ -88,6 +110,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
+	const throttled = writeLimit(event);
+	if (throttled) return throttled;
+
 	// World access control, enforced once for every route under /w/[slug].
 	const m = /^\/w\/([^/]+)(\/.*)?$/.exec(event.url.pathname);
 	if (m) {
@@ -120,5 +145,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const response = await resolve(event);
 	if (event.locals.user) response.headers.set('cache-control', 'private, no-store');
+	// CSP is configured in vite.config.ts; these are the headers it does not cover.
+	// X-Frame-Options duplicates frame-ancestors for browsers that predate it.
+	response.headers.set('x-frame-options', 'DENY');
+	response.headers.set('x-content-type-options', 'nosniff');
+	response.headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+	response.headers.set('permissions-policy', 'geolocation=(), camera=(), microphone=()');
 	return response;
 };
