@@ -5,6 +5,7 @@ import { num, str } from './lib/server/coerce.ts';
 import { MAX_REVISIONS, prunable, REVISION_WINDOW_MS, revisionDue } from './lib/revisions.ts';
 import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
 import { diffBlocks, diffWords } from './lib/diff.ts';
+import { xml, zip } from './lib/server/zip.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -148,5 +149,35 @@ assert.deepEqual(
 );
 assert.deepEqual(diffBlocks('same', 'same'), [{ type: 'same', text: 'same' }]);
 assert.deepEqual(diffBlocks('', ''), [], 'empty documents diff to nothing');
+
+// --- zip container ---
+// A hand-written archive format only stays correct if something checks the offsets.
+const archive = zip([
+	{ path: 'mimetype', data: 'application/epub+zip', store: true },
+	{ path: 'big.txt', data: 'compress me '.repeat(400) },
+	{ path: 'dir/small.xml', data: '<a/>' }
+]);
+const sig = (at: number) =>
+	[...archive.slice(at, at + 4)].map((b) => b.toString(16).padStart(2, '0')).join('');
+assert.equal(sig(0), '504b0304', 'starts with a local file header');
+const u32at = (at: number) =>
+	archive[at] | (archive[at + 1] << 8) | (archive[at + 2] << 16) | (archive[at + 3] << 24);
+// End of central directory is the last 22 bytes when there is no archive comment.
+const eocd = archive.length - 22;
+assert.equal(sig(eocd), '504b0506', 'ends with an end-of-central-directory record');
+assert.equal(archive[eocd + 8] | (archive[eocd + 9] << 8), 3, 'records every entry');
+const dirAt = u32at(eocd + 16);
+assert.equal(sig(dirAt), '504b0102', 'the directory offset points at the first central header');
+assert.equal(u32at(eocd + 12), archive.length - 22 - dirAt, 'directory size matches its span');
+// A stored entry must not be deflated: EPUB readers require it of `mimetype`.
+assert.equal(archive[8] | (archive[9] << 8), 0, 'the first entry is stored, not deflated');
+assert.equal(
+	Buffer.from(archive.slice(30, 38)).toString(),
+	'mimetype',
+	'and is the entry we asked to be first'
+);
+assert.equal(zip([]).length, 22, 'an empty archive is just the end record');
+
+assert.equal(xml('a & b < c > "d" \'e\''), 'a &amp; b &lt; c &gt; &quot;d&quot; &apos;e&apos;');
 
 console.log('selfcheck ok');
