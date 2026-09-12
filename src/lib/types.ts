@@ -143,3 +143,38 @@ export const ROLE_LABELS: Record<ChapterRole | 'mention', string> = {
 	cast: 'Cast',
 	mention: 'Mentioned'
 };
+
+/** A panel prepared for display: markdown rendered, element refs resolved. */
+export type ViewPanel =
+	| {
+			id: string;
+			kind: 'info';
+			title: string;
+			rows: {
+				label: string;
+				kind: string;
+				value: string;
+				href: string | null;
+				icon: string | null;
+			}[];
+	  }
+	| { id: string; kind: 'text'; title: string; html: string }
+	| { id: string; kind: 'list'; title: string; items: { name: string; html: string }[] }
+	| {
+			id: string;
+			kind: 'stats';
+			title: string;
+			stats: { name: string; value: number; max: number }[];
+	  }
+	| {
+			id: string;
+			kind: 'links';
+			title: string;
+			links: { name: string; slug: string; icon: string; typeName: string; note: string }[];
+	  }
+	| { id: string; kind: 'gallery'; title: string; images: { url: string; caption: string }[] }
+	| { id: string; kind: 'map'; title: string; imageUrl: string; pins: ViewPin[] };
+
+export type ViewPin = MapPin & {
+	element: { name: string; slug: string; icon: string; summary: string } | null;
+};
