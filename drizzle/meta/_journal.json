@@ -64,6 +64,13 @@
       "when": 1789213173698,
       "tag": "0008_element_parent",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789249294003,
+      "tag": "0009_comments",
+      "breakpoints": true
     }
   ]
 }

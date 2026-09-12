@@ -366,3 +366,31 @@ export const revisions = sqliteTable(
 );
 
 export type Revision = typeof revisions.$inferSelect;
+
+// ---- panel comments -------------------------------------------------------
+
+/**
+ * A co-writer's note against one panel of an element. `panel_id` is not a foreign key — panels
+ * live inside `elements.panels` as JSON — so the element save path drops comments whose panel has
+ * been removed, the same way it recomputes links and map pins.
+ */
+export const comments = sqliteTable(
+	'comments',
+	{
+		id: id(),
+		worldId: text('world_id')
+			.notNull()
+			.references(() => worlds.id, { onDelete: 'cascade' }),
+		elementId: text('element_id')
+			.notNull()
+			.references(() => elements.id, { onDelete: 'cascade' }),
+		panelId: text('panel_id').notNull(),
+		body: text('body').notNull(),
+		authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+		resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+		createdAt: now()
+	},
+	(t) => [index('comments_element').on(t.elementId, t.createdAt)]
+);
+
+export type Comment = typeof comments.$inferSelect;

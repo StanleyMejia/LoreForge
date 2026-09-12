@@ -1,10 +1,33 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import MapPanel from '$lib/components/MapPanel.svelte';
 	import { panelIcon, type ViewPanel } from '$lib/types';
+	import { timeAgo } from '$lib/format';
 
-	let { panels, base, empty }: { panels: ViewPanel[]; base: string; empty?: Snippet } = $props();
+	interface PanelComment {
+		id: string;
+		panelId: string;
+		body: string;
+		createdAt: Date;
+		resolvedAt: Date | null;
+		author: string | null;
+	}
+	let {
+		panels,
+		base,
+		empty,
+		comments,
+		readonly = false
+	}: {
+		panels: ViewPanel[];
+		base: string;
+		empty?: Snippet;
+		/** Omitted on a historical revision: comments belong to the element as it is now. */
+		comments?: PanelComment[];
+		readonly?: boolean;
+	} = $props();
 </script>
 
 {#each panels as p (p.id)}
@@ -98,6 +121,57 @@
 					</figure>
 				{/each}
 			</div>
+		{/if}
+		{#if comments}
+			{@const thread = comments.filter((c) => c.panelId === p.id)}
+			{@const open = thread.filter((c) => !c.resolvedAt).length}
+			<details class="mt-4 border-t border-slate-800 pt-3" data-role="panel-comments">
+				<summary class="muted cursor-pointer text-xs hover:text-slate-300">
+					💬 {thread.length === 0
+						? 'Comment'
+						: `${thread.length} comment${thread.length === 1 ? '' : 's'}`}{open
+						? ` · ${open} open`
+						: ''}
+				</summary>
+
+				<ul class="mt-3 space-y-3">
+					{#each thread as c (c.id)}
+						<li class="text-xs {c.resolvedAt ? 'opacity-50' : ''}" data-role="comment">
+							<p class="whitespace-pre-wrap text-slate-300">{c.body}</p>
+							<div class="muted mt-1 flex flex-wrap items-center gap-2">
+								<span>{c.author ?? 'Someone'} · {timeAgo(c.createdAt)}</span>
+								{#if c.resolvedAt}<span class="chip">resolved</span>{/if}
+								{#if !readonly}
+									<form method="POST" action="?/resolveComment" use:enhance>
+										<input type="hidden" name="id" value={c.id} />
+										<input type="hidden" name="resolved" value={c.resolvedAt ? 'false' : 'true'} />
+										<button class="hover:text-amber-300" type="submit"
+											>{c.resolvedAt ? 'Reopen' : 'Resolve'}</button
+										>
+									</form>
+									<form method="POST" action="?/deleteComment" use:enhance>
+										<input type="hidden" name="id" value={c.id} />
+										<button class="hover:text-red-400" type="submit">Delete</button>
+									</form>
+								{/if}
+							</div>
+						</li>
+					{/each}
+				</ul>
+
+				{#if !readonly}
+					<form method="POST" action="?/comment" use:enhance class="mt-3 flex gap-2">
+						<input type="hidden" name="panelId" value={p.id} />
+						<input
+							class="input text-xs"
+							name="body"
+							placeholder="Leave a note on this panel…"
+							required
+						/>
+						<button class="btn btn-sm" type="submit">Post</button>
+					</form>
+				{/if}
+			</details>
 		{/if}
 	</section>
 {:else}
