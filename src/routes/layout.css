@@ -57,6 +57,19 @@ body {
 .md {
 	@apply prose max-w-none prose-slate prose-invert prose-headings:font-semibold prose-a:text-amber-400 prose-a:no-underline hover:prose-a:underline prose-img:rounded-md;
 }
+/*
+ * Rendered markdown is the one place page width is not ours to control: a table, a code block or
+ * a pasted URL can all be wider than a phone. Long words wrap, and the two elements that cannot
+ * wrap scroll inside themselves rather than widening the page.
+ */
+.md {
+	overflow-wrap: break-word;
+}
+.md :is(table, pre) {
+	display: block;
+	max-width: 100%;
+	overflow-x: auto;
+}
 .md.md-serif {
 	@apply font-serif text-[1.05rem] leading-relaxed;
 }

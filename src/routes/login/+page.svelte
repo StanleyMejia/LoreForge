@@ -2,7 +2,14 @@
 	let { data } = $props();
 </script>
 
-<svelte:head><title>Sign in · Loreforge</title></svelte:head>
+<svelte:head>
+	<title>Sign in · Loreforge</title>
+	<meta
+		name="description"
+		content="Loreforge — a self-hosted worldbuilding and manuscript workspace."
+	/>
+	<meta name="robots" content="noindex" />
+</svelte:head>
 
 <div class="flex min-h-screen items-center justify-center px-6">
 	<div class="card w-full max-w-sm p-8 text-center">
