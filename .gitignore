@@ -27,3 +27,8 @@ vite.config.ts.timestamp-*
 # Local database directory (WAL/SHM files included)
 /data/
 *.db-*
+
+# Stray probe output from manual testing; keep it out of the tree.
+*.probe.json
+/lucas.html
+/qa.json
