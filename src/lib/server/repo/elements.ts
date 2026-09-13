@@ -424,6 +424,8 @@ interface RelationshipView {
 	label: string;
 	notes: string;
 	direction: 'out' | 'in';
+	/** Incoming with no reverse label: `label` reads from the other element to this one. */
+	unreversed: boolean;
 	other: { id: string; slug: string; name: string; icon: string; typeName: string };
 }
 
@@ -446,6 +448,7 @@ export function relationshipsFor(elementId: string): RelationshipView[] {
 			label: out_ ? r.label : r.reverseLabel || r.label,
 			notes: r.notes,
 			direction: out_ ? 'out' : 'in',
+			unreversed: !out_ && !r.reverseLabel,
 			other: {
 				id: other.id,
 				slug: other.slug,

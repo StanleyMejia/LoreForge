@@ -170,12 +170,15 @@
 						{#each data.relationships as r (r.id)}
 							<li class="flex items-start justify-between gap-2 text-sm">
 								<div class="min-w-0">
-									<div class="text-xs text-slate-500">{r.label}</div>
+									{#if !r.unreversed}<div class="text-xs text-slate-500">{r.label}</div>{/if}
 									<a
 										href="{base}/e/{r.other.slug}"
 										class="font-medium text-slate-100 hover:text-amber-300"
 										>{r.other.icon} {r.other.name}</a
 									>
+									{#if r.unreversed}
+										<div class="text-xs text-slate-500">{r.label} {data.element.name}</div>
+									{/if}
 									{#if r.notes}<div class="text-xs text-slate-400">{r.notes}</div>{/if}
 								</div>
 								{#if !data.readonly}
