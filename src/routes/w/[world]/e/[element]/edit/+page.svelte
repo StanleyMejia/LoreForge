@@ -13,6 +13,7 @@
 {#key data.element.id}
 	<ElementForm
 		{base}
+		action="{base}/e/{data.element.slug}/edit"
 		types={data.types}
 		typeId={data.element.typeId}
 		index={data.index}

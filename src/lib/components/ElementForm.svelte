@@ -23,6 +23,12 @@
 	}
 	interface Props {
 		base: string;
+		/**
+		 * Where to submit. Explicit rather than omitted: a form with no action targets whatever
+		 * URL the browser is currently on, which posts to the wrong route if the address has
+		 * drifted from the rendered page.
+		 */
+		action: string;
 		types: TypeOpt[];
 		typeId: string;
 		index: IndexItem[];
@@ -42,6 +48,7 @@
 	}
 	let {
 		base,
+		action,
 		types,
 		typeId,
 		index,
@@ -111,6 +118,7 @@
 
 <form
 	method="POST"
+	{action}
 	use:enhance
 	class="space-y-6"
 	bind:this={formEl}
