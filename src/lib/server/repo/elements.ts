@@ -257,6 +257,52 @@ export function childrenOf(worldId: string, parentId: string) {
 		.all();
 }
 
+/**
+ * Everything that points at an element through an attribute, grouped by the attribute's label —
+ * a faction's "Affiliation" members, a species' "Species" members, a place's "Home" residents.
+ * Attribute values hold element ids, which the wiki-link table never sees, so without this a
+ * reference is only visible from the element that makes it.
+ * ponytail: a like-filtered scan of the world's panels per page view, the same order as the upload
+ * collector. Upgrade path: derive attribute references into a table on save, beside links.
+ */
+export function referencedBy(worldId: string, elementId: string) {
+	const rows = db
+		.select({ ...listCols, panels: elements.panels })
+		.from(elements)
+		.innerJoin(elementTypes, eq(elementTypes.id, elements.typeId))
+		.where(and(eq(elements.worldId, worldId), sql`${elements.panels} like ${`%${elementId}%`}`))
+		.orderBy(asc(elements.name))
+		.all();
+	const groups = new Map<
+		string,
+		{
+			label: string;
+			items: { id: string; name: string; slug: string; icon: string; typeName: string }[];
+		}
+	>();
+	for (const r of rows) {
+		if (r.id === elementId) continue;
+		for (const p of r.panels) {
+			if (p.kind !== 'info') continue;
+			for (const f of p.fields) {
+				if (f.kind !== 'element' || p.values[f.key] !== elementId) continue;
+				const g = groups.get(f.label) ?? { label: f.label, items: [] };
+				// Two same-label fields pointing at the same target should list the element once.
+				if (!g.items.some((i) => i.id === r.id))
+					g.items.push({
+						id: r.id,
+						name: r.name,
+						slug: r.slug,
+						icon: r.typeIcon,
+						typeName: r.typeName
+					});
+				groups.set(f.label, g);
+			}
+		}
+	}
+	return [...groups.values()];
+}
+
 /** The containment chain of an element, outermost first, for breadcrumbs. */
 export function ancestorTrail(id: string): { id: string; name: string; slug: string }[] {
 	const cache = new Map<string, ReturnType<typeof getElementById>>();
