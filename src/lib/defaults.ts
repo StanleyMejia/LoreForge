@@ -215,22 +215,30 @@ export const DEFAULT_TYPES: DefaultType[] = [
 		icon: '⚔️',
 		color: '#ef4444',
 		panels: [
+			// Keys leader/headquarters/goals are kept so relabelling never orphans stored values.
+			// No Members list: members are whoever names this faction in an attribute, and the
+			// element page lists them automatically under Referenced by.
 			info('basic', 'Basic Information', [
 				sel('kind', 'Kind', [
 					'Kingdom',
+					'House',
+					'Order',
 					'Guild',
 					'Company',
 					'Military',
+					'Religion',
 					'Family',
-					'Order',
 					'Other'
 				]),
-				ref('leader', 'Leader', 'character'),
-				ref('headquarters', 'Headquarters', 'location')
+				ref('leader', 'Head', 'character'),
+				ref('headquarters', 'Seat', 'location'),
+				ref('allegiance', 'Allegiance', 'faction'),
+				txt('standing', 'Standing'),
+				txt('strength', 'Strength')
 			]),
 			text('overview', 'Overview'),
-			list('goals', 'Goals'),
-			links('members', 'Members')
+			text('history', 'History'),
+			list('goals', 'Agenda')
 		]
 	},
 	{

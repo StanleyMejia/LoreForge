@@ -132,6 +132,35 @@
 					</ul>
 				</section>
 			{/if}
+			{#if data.referencedBy.length}
+				<!-- Elements that point here through an attribute, grouped by that attribute. -->
+				<section class="card" data-role="referenced-by">
+					<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+						Referenced by
+					</h2>
+					<div class="space-y-3">
+						{#each data.referencedBy as g (g.label)}
+							<div>
+								<div class="text-xs text-slate-500">{g.label} · {g.items.length}</div>
+								<ul class="mt-1 space-y-1 text-sm">
+									{#each g.items as it (it.id)}
+										<li>
+											<a
+												href="{base}/e/{it.slug}"
+												class="flex items-baseline gap-2 hover:text-amber-300"
+											>
+												<span class="opacity-70">{it.icon}</span>
+												<span class="truncate text-slate-200">{it.name}</span>
+												<span class="muted ml-auto shrink-0 text-xs">{it.typeName}</span>
+											</a>
+										</li>
+									{/each}
+								</ul>
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
 			<section class="card">
 				<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
 					Relationships
