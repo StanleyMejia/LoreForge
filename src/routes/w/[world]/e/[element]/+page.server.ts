@@ -4,6 +4,7 @@ import { getTypeById } from '$lib/server/repo/worlds';
 import {
 	ancestorTrail,
 	backlinks,
+	childrenOf,
 	createRelationship,
 	deleteElement,
 	deleteRelationship,
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		type,
 		panels: prepare(element.panels, world.slug, ctx),
 		trail: ancestorTrail(element.id),
+		children: childrenOf(world.id, element.id),
 		comments: listComments(world.id, element.id),
 		relationships: relationshipsFor(element.id),
 		// chapter mentions are shown under "Appears in" instead

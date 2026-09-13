@@ -82,6 +82,26 @@
 		newField = { label: '', kind: 'text', ref: '', options: '' };
 		addingField = null;
 	}
+	/**
+	 * Attribute reordering. Drag is the pleasant path; the arrows exist because a drag-only
+	 * control is unusable by keyboard and awkward on a touchscreen.
+	 */
+	let dragField: { panel: string; from: number } | null = $state(null);
+	let dropTarget: { panel: string; at: number } | null = $state(null);
+
+	function moveField(p: Panel, from: number, to: number) {
+		if (p.kind !== 'info') return;
+		if (to < 0 || to >= p.fields.length || from === to) return;
+		const [f] = p.fields.splice(from, 1);
+		p.fields.splice(to, 0, f);
+	}
+
+	function onFieldDrop(p: Panel, to: number) {
+		if (dragField && dragField.panel === p.id) moveField(p, dragField.from, to);
+		dragField = null;
+		dropTarget = null;
+	}
+
 	function removeField(p: Panel, i: number) {
 		if (p.kind !== 'info') return;
 		const f = p.fields[i];
@@ -151,22 +171,71 @@
 			{#if p.kind === 'info'}
 				<div class="grid gap-3 sm:grid-cols-2">
 					{#each p.fields as f, fi (f.key)}
-						<div class={f.kind === 'textarea' ? 'sm:col-span-2' : ''}>
-							<div class="flex items-center justify-between">
-								<label class="label" for="{p.id}-{f.key}"
-									>{f.label}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class="{f.kind === 'textarea' ? 'sm:col-span-2' : ''} rounded-md transition
+								{dragField?.panel === p.id && dragField.from === fi ? 'opacity-40' : ''}
+								{dropTarget?.panel === p.id && dropTarget.at === fi ? 'ring-2 ring-amber-500/70' : ''}"
+							ondragover={(e) => {
+								if (dragField?.panel !== p.id) return;
+								e.preventDefault();
+								dropTarget = { panel: p.id, at: fi };
+							}}
+							ondragleave={() => {
+								if (dropTarget?.panel === p.id && dropTarget.at === fi) dropTarget = null;
+							}}
+							ondrop={(e) => {
+								e.preventDefault();
+								onFieldDrop(p, fi);
+							}}
+						>
+							<div class="flex items-center justify-between gap-1">
+								<label class="label flex min-w-0 items-center gap-1.5" for="{p.id}-{f.key}">
+									<span
+										class="cursor-grab text-slate-600 select-none hover:text-slate-300 active:cursor-grabbing"
+										draggable="true"
+										role="button"
+										tabindex="-1"
+										aria-label="Drag to reorder {f.label}"
+										title="Drag to reorder"
+										ondragstart={(e) => {
+											dragField = { panel: p.id, from: fi };
+											e.dataTransfer?.setData('text/plain', f.key);
+											if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+										}}
+										ondragend={() => {
+											dragField = null;
+											dropTarget = null;
+										}}>⠿</span
+									><span class="truncate">{f.label}</span>
 									{#if template}<span class="font-normal text-slate-500 normal-case"
 											>· {FIELD_KINDS.find((k) => k.v === f.kind)?.l}{f.kind === 'element' && f.ref
 												? ` → ${typeKeys.find((t) => t.key === f.ref)?.name ?? f.ref}`
 												: ''}</span
 										>{/if}</label
 								>
-								<button
-									type="button"
-									class="text-xs text-slate-600 hover:text-red-400"
-									title="Remove attribute"
-									onclick={() => removeField(p, fi)}>✕</button
-								>
+								<span class="flex shrink-0 items-center gap-0.5">
+									<button
+										type="button"
+										class="px-0.5 text-xs text-slate-600 hover:text-amber-300 disabled:opacity-30"
+										disabled={fi === 0}
+										title="Move up"
+										onclick={() => moveField(p, fi, fi - 1)}>↑</button
+									>
+									<button
+										type="button"
+										class="px-0.5 text-xs text-slate-600 hover:text-amber-300 disabled:opacity-30"
+										disabled={fi === p.fields.length - 1}
+										title="Move down"
+										onclick={() => moveField(p, fi, fi + 1)}>↓</button
+									>
+									<button
+										type="button"
+										class="px-0.5 text-xs text-slate-600 hover:text-red-400"
+										title="Remove attribute"
+										onclick={() => removeField(p, fi)}>✕</button
+									>
+								</span>
 							</div>
 							{#if template}
 								{#if f.kind === 'select'}

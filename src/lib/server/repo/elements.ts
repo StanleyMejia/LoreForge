@@ -242,6 +242,21 @@ export function updateElement(
 	return row;
 }
 
+/**
+ * What sits directly inside an element, of any type. The breadcrumb looks up the chain; this is
+ * the view down it, and without it a child is invisible from its parent — a faction nested in a
+ * location appears in neither type's tree, because a tree only ever holds one type.
+ */
+export function childrenOf(worldId: string, parentId: string) {
+	return db
+		.select(listCols)
+		.from(elements)
+		.innerJoin(elementTypes, eq(elementTypes.id, elements.typeId))
+		.where(and(eq(elements.worldId, worldId), eq(elements.parentId, parentId)))
+		.orderBy(asc(elementTypes.sortOrder), asc(elements.name))
+		.all();
+}
+
 /** The containment chain of an element, outermost first, for breadcrumbs. */
 export function ancestorTrail(id: string): { id: string; name: string; slug: string }[] {
 	const cache = new Map<string, ReturnType<typeof getElementById>>();

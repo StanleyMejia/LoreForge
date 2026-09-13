@@ -113,6 +113,25 @@
 		</article>
 
 		<aside class="space-y-6" data-role="element-sidebar">
+			{#if data.children.length}
+				<!-- The view down the containment chain; the breadcrumb is the view up it. -->
+				<section class="card" data-role="contains">
+					<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+						Contains · {data.children.length}
+					</h2>
+					<ul class="space-y-1 text-sm">
+						{#each data.children as c (c.id)}
+							<li>
+								<a href="{base}/e/{c.slug}" class="flex items-baseline gap-2 hover:text-amber-300">
+									<span class="opacity-70">{c.typeIcon}</span>
+									<span class="truncate text-slate-200">{c.name}</span>
+									<span class="muted ml-auto shrink-0 text-xs">{c.typeName}</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 			<section class="card">
 				<h2 class="mb-2 text-sm font-semibold tracking-wide text-slate-400 uppercase">
 					Relationships

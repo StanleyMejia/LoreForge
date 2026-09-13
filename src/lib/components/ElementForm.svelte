@@ -100,10 +100,17 @@
 	let imageUrl = $state(element?.imageUrl ?? '');
 	const typeKeys = $derived(types.map((t) => ({ key: t.key, name: t.singular })));
 
+	// What the template put there, so any later change to the panels counts as an edit. Only
+	// typing fires the form's input event; adding, removing or reordering with the panel buttons
+	// or by drag does not, and switching type used to discard that work without asking.
+	// svelte-ignore state_referenced_locally
+	let seeded = JSON.stringify($state.snapshot(panels));
+
 	/** Switching type on a brand-new, untouched element re-applies that type's template. */
 	function onTypeChange() {
-		if (element || dirty) return;
+		if (element || dirty || JSON.stringify($state.snapshot(panels)) !== seeded) return;
 		panels = panelsFromTemplate(types.find((t) => t.id === selectedType)?.panels ?? []);
+		seeded = JSON.stringify($state.snapshot(panels));
 	}
 	let formEl: HTMLFormElement | undefined = $state();
 	function onKeydown(e: KeyboardEvent) {
