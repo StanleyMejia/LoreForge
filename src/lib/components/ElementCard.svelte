@@ -43,7 +43,7 @@
 		{#if el.summary}<p class="muted mt-0.5 line-clamp-2">{el.summary}</p>{/if}
 		{#if el.tags.length}
 			<div class="mt-1.5 flex flex-wrap gap-1">
-				{#each el.tags as t (t)}<span class="chip">{t}</span>{/each}
+				{#each el.tags as t, i (i)}<span class="chip">{t}</span>{/each}
 			</div>
 		{/if}
 	</div>

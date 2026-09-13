@@ -13,6 +13,14 @@ export default defineConfig({
 			},
 			adapter: adapter({ out: 'build' }),
 			/**
+			 * Every build hashes its JS chunks afresh, so a tab left open across a deploy holds
+			 * references to files that no longer exist. Without this, its next client-side
+			 * navigation imports a 404 and dies after the URL has already changed — the address
+			 * bar moves and the page does not. Polling lets the app notice a new version and
+			 * reload instead (see +layout.svelte).
+			 */
+			version: { pollInterval: 300_000 },
+			/**
 			 * SvelteKit adds its own hashes/nonces to script-src, so inline hydration keeps working.
 			 *
 			 * style-src needs unsafe-inline because map pins and the relationship graph position
