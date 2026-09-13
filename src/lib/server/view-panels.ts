@@ -30,13 +30,22 @@ export function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext):
 						const r = refs.get(raw);
 						if (r)
 							rows.push({
+								key: f.key,
 								label: f.label,
 								kind: f.kind,
 								value: r.name,
 								href: `/w/${worldSlug}/e/${r.slug}`,
 								icon: r.typeIcon
 							});
-					} else rows.push({ label: f.label, kind: f.kind, value: raw, href: null, icon: null });
+					} else
+						rows.push({
+							key: f.key,
+							label: f.label,
+							kind: f.kind,
+							value: raw,
+							href: null,
+							icon: null
+						});
 				}
 				if (rows.length) out.push({ id: p.id, kind: 'info', title: p.title, rows });
 				break;

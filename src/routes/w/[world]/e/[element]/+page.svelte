@@ -70,7 +70,7 @@
 					</p>{/if}
 				<div class="mt-2 flex flex-wrap items-center gap-1.5">
 					<span class="chip" style="border-color: {data.type.color}66">{data.type.singular}</span>
-					{#each data.element.tags as t (t)}
+					{#each data.element.tags as t, i (i)}
 						<a href="{base}/search?tag={encodeURIComponent(t)}" class="chip hover:border-amber-600"
 							>{t}</a
 						>

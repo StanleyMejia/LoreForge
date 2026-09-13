@@ -151,6 +151,8 @@ export type ViewPanel =
 			kind: 'info';
 			title: string;
 			rows: {
+				/** The field key: unique within a panel, unlike the label, so it is safe to key on. */
+				key: string;
 				label: string;
 				kind: string;
 				value: string;

@@ -73,7 +73,7 @@
 		<ul
 			class="absolute right-3 left-3 z-30 mt-1 overflow-hidden rounded-md border border-slate-700 bg-slate-900 shadow-xl"
 		>
-			{#each hits as h, i (h.href)}
+			{#each hits as h, i (i)}
 				<li>
 					<a
 						href={h.href}

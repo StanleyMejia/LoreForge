@@ -37,7 +37,7 @@
 		</h2>
 		{#if p.kind === 'info'}
 			<dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-				{#each p.rows as r (r.label)}
+				{#each p.rows as r (r.key)}
 					<div class={r.kind === 'textarea' ? 'sm:col-span-2' : ''}>
 						<dt class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
 							{r.label}
@@ -63,7 +63,7 @@
 			</ul>
 		{:else if p.kind === 'stats'}
 			<ul class="space-y-2">
-				{#each p.stats as st (st.name)}
+				{#each p.stats as st, i (i)}
 					{@const pct = st.max > 0 ? Math.max(0, Math.min(100, (st.value / st.max) * 100)) : null}
 					<li>
 						<div class="flex justify-between text-sm">
@@ -79,7 +79,7 @@
 			</ul>
 		{:else if p.kind === 'links'}
 			<ul class="grid gap-2 sm:grid-cols-2">
-				{#each p.links as l (l.slug)}
+				{#each p.links as l, i (i)}
 					<li>
 						<a
 							href="{base}/e/{l.slug}"
@@ -105,7 +105,7 @@
 			/>
 		{:else if p.kind === 'gallery'}
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-				{#each p.images as img (img.url)}
+				{#each p.images as img, i (i)}
 					<figure>
 						<a href={img.url} target="_blank" rel="noopener noreferrer"
 							><img
