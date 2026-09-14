@@ -1,4 +1,6 @@
 <script lang="ts">
+	import CommentThreads from '$lib/components/CommentThreads.svelte';
+
 	let { data } = $props();
 	const base = $derived(`/w/${data.world.slug}`);
 	const mbase = $derived(`${base}/m/${data.manuscript.id}`);
@@ -68,6 +70,10 @@
 						<a href="{mbase}/c/{c.id}" class="hover:text-amber-300">Edit chapter ✎</a> ·
 						{c.wordCount.toLocaleString('en')} words · {c.status}
 					</p>
+					{#if c.comments.length}
+						<!-- Read-only here for everyone: replies and new threads live in the chapter editor. -->
+						<CommentThreads comments={c.comments} readonly role="chapter-comments" />
+					{/if}
 				</section>
 			{:else}
 				<p class="muted">No chapters yet.</p>
