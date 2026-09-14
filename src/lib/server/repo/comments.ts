@@ -1,13 +1,14 @@
 import { and, asc, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
+import type { CommentView } from '$lib/comments';
 
 const { comments, users } = schema;
 
-/** Every comment on an element, oldest first, with its author's display name. */
-export function listComments(worldId: string, elementId: string) {
+function listWhere(where: ReturnType<typeof and>): CommentView[] {
 	return db
 		.select({
 			id: comments.id,
+			parentId: comments.parentId,
 			panelId: comments.panelId,
 			body: comments.body,
 			createdAt: comments.createdAt,
@@ -18,43 +19,86 @@ export function listComments(worldId: string, elementId: string) {
 		})
 		.from(comments)
 		.leftJoin(users, eq(users.id, comments.authorId))
-		.where(and(eq(comments.worldId, worldId), eq(comments.elementId, elementId)))
+		.where(where)
 		.orderBy(asc(comments.createdAt))
 		.all();
 }
 
-export function addComment(input: {
-	worldId: string;
-	elementId: string;
-	panelId: string;
-	body: string;
-	authorId: string | null;
-}) {
-	return db.insert(comments).values(input).returning().get();
+/** Every comment on an element's panels, oldest first, with its author's display name. */
+export function listComments(worldId: string, elementId: string) {
+	return listWhere(and(eq(comments.worldId, worldId), eq(comments.elementId, elementId)));
 }
 
+/** Every comment on a chapter, oldest first. */
+export function listChapterComments(worldId: string, chapterId: string) {
+	return listWhere(and(eq(comments.worldId, worldId), eq(comments.chapterId, chapterId)));
+}
+
+type Target = { elementId: string; panelId: string } | { chapterId: string };
+
+/**
+ * Add a comment. With `parentId` it is a reply: it joins that comment's thread — always under the
+ * thread's first comment, so threads stay one level deep — and takes the thread's target. Returns
+ * null when the parent is not in this world or is on a different element or chapter.
+ */
+export function addComment(
+	input: {
+		worldId: string;
+		body: string;
+		authorId: string | null;
+		parentId?: string | null;
+	} & Target
+) {
+	const { worldId, body, authorId } = input;
+	if (input.parentId) {
+		const parent = db
+			.select()
+			.from(comments)
+			.where(and(eq(comments.worldId, worldId), eq(comments.id, input.parentId)))
+			.get();
+		const sameTarget =
+			'chapterId' in input
+				? parent?.chapterId === input.chapterId
+				: parent?.elementId === input.elementId;
+		if (!parent || !sameTarget) return null;
+		return db
+			.insert(comments)
+			.values({
+				worldId,
+				elementId: parent.elementId,
+				chapterId: parent.chapterId,
+				panelId: parent.panelId,
+				parentId: parent.parentId ?? parent.id,
+				body,
+				authorId
+			})
+			.returning()
+			.get();
+	}
+	const target =
+		'chapterId' in input
+			? { chapterId: input.chapterId }
+			: { elementId: input.elementId, panelId: input.panelId };
+	return db
+		.insert(comments)
+		.values({ worldId, ...target, body, authorId })
+		.returning()
+		.get();
+}
+
+/** Resolve or reopen a thread. Only a thread's first comment carries the state. */
 export function setCommentResolved(worldId: string, id: string, resolved: boolean) {
 	db.update(comments)
 		.set({ resolvedAt: resolved ? new Date() : null })
-		.where(and(eq(comments.worldId, worldId), eq(comments.id, id)))
+		.where(and(eq(comments.worldId, worldId), eq(comments.id, id), isNull(comments.parentId)))
 		.run();
 }
 
+/** Delete a comment. Deleting a thread's first comment deletes its replies (foreign key cascade). */
 export function deleteComment(worldId: string, id: string) {
 	db.delete(comments)
 		.where(and(eq(comments.worldId, worldId), eq(comments.id, id)))
 		.run();
-}
-
-/** Unresolved comment counts per element, for list badges. */
-export function openCommentCounts(worldId: string): Map<string, number> {
-	const rows = db
-		.select({ elementId: comments.elementId, n: sql<number>`count(*)` })
-		.from(comments)
-		.where(and(eq(comments.worldId, worldId), isNull(comments.resolvedAt)))
-		.groupBy(comments.elementId)
-		.all();
-	return new Map(rows.map((r) => [r.elementId, r.n]));
 }
 
 /**

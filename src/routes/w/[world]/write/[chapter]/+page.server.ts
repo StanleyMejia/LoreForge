@@ -11,6 +11,12 @@ import {
 	moveChapter
 } from '$lib/server/repo/manuscripts';
 import { listEvents } from '$lib/server/repo/timeline';
+import {
+	addComment,
+	deleteComment,
+	listChapterComments,
+	setCommentResolved
+} from '$lib/server/repo/comments';
 import { str } from '$lib/server/form';
 
 export const load: PageServerLoad = async ({ params, parent }) => {
@@ -21,6 +27,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		chapter,
 		binder: binder(world.id),
 		refs: chapterRefsFor(chapter.id),
+		comments: listChapterComments(world.id, chapter.id),
 		events: listEvents(world.id).map((e) => ({ id: e.id, title: e.title, dateLabel: e.dateLabel }))
 	};
 };
@@ -66,5 +73,31 @@ export const actions: Actions = {
 		const { world, chapter } = ctx(locals, params.chapter);
 		deleteChapter(chapter.manuscriptId, chapter.id);
 		redirect(303, `/w/${world.slug}/write`);
+	},
+	comment: async ({ params, request, locals }) => {
+		const { world, chapter } = ctx(locals, params.chapter);
+		const form = await request.formData();
+		const body = str(form, 'body').trim().slice(0, 4000);
+		if (!body) return fail(400, { commentError: 'Write something first.' });
+		const added = addComment({
+			worldId: world.id,
+			chapterId: chapter.id,
+			parentId: str(form, 'parentId') || null,
+			body,
+			authorId: locals.user?.id ?? null
+		});
+		if (!added) return fail(400, { commentError: 'That thread is gone.' });
+		return { ok: true };
+	},
+	resolveComment: async ({ params, request, locals }) => {
+		const { world } = ctx(locals, params.chapter);
+		const form = await request.formData();
+		setCommentResolved(world.id, str(form, 'id'), str(form, 'resolved') !== 'false');
+		return { ok: true };
+	},
+	deleteComment: async ({ params, request, locals }) => {
+		const { world } = ctx(locals, params.chapter);
+		deleteComment(world.id, str(await request.formData(), 'id'));
+		return { ok: true };
 	}
 };

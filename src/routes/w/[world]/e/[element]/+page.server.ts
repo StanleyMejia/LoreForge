@@ -12,7 +12,8 @@ import {
 	getElement,
 	getElementById,
 	relationshipsFor,
-	onMaps
+	onMaps,
+	updateRelationship
 } from '$lib/server/repo/elements';
 import { makeResolver, type RenderContext } from '$lib/markdown';
 import { prepare } from '$lib/server/view-panels';
@@ -49,7 +50,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 };
 
 export const actions: Actions = {
-	// All three are POSTs, so hooks.server.ts already limits them to editors and owners.
+	// Every action is a POST, so hooks.server.ts already limits them to editors and owners.
 	comment: async ({ params, request, locals }) => {
 		const world = locals.world!;
 		const el = getElement(world.id, params.element);
@@ -57,16 +58,20 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const body = str(form, 'body').trim().slice(0, 4000);
 		const panelId = str(form, 'panelId');
+		const parentId = str(form, 'parentId') || null;
 		if (!body) return fail(400, { commentError: 'Write something first.' });
-		if (!el.panels.some((p) => p.id === panelId))
+		// A reply takes its thread's panel, so only a new thread names one.
+		if (!parentId && !el.panels.some((p) => p.id === panelId))
 			return fail(400, { commentError: 'That panel is gone.' });
-		addComment({
+		const added = addComment({
 			worldId: world.id,
 			elementId: el.id,
 			panelId,
+			parentId,
 			body,
 			authorId: locals.user?.id ?? null
 		});
+		if (!added) return fail(400, { commentError: 'That thread is gone.' });
 		return { ok: true };
 	},
 	resolveComment: async ({ request, locals }) => {
@@ -108,10 +113,27 @@ export const actions: Actions = {
 		});
 		return { ok: true };
 	},
+	editRelationship: async ({ params, request, locals }) => {
+		const world = locals.world!;
+		const el = getElement(world.id, params.element);
+		if (!el) error(404);
+		const form = await request.formData();
+		const id = str(form, 'id');
+		const label = str(form, 'label').trim();
+		if (!label) return fail(400, { relEditError: 'Give the relationship a label.', relId: id });
+		const ok = updateRelationship(world.id, el.id, id, {
+			label,
+			reverseLabel: str(form, 'reverseLabel').trim(),
+			notes: str(form, 'notes').trim(),
+			swap: form.get('swap') === 'on'
+		});
+		if (!ok) error(404, 'Relationship not found');
+		return { ok: true };
+	},
 	removeRelationship: async ({ request, locals }) => {
 		const world = locals.world!;
 		const form = await request.formData();
-		deleteRelationship(str(form, 'id'));
+		deleteRelationship(world.id, str(form, 'id'));
 		return { ok: true };
 	}
 };

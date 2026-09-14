@@ -34,10 +34,12 @@ One Node process, one SQLite file, no external services.
   diff matches paragraphs first and then words inside an edited one, so an untouched paragraph stays
   quiet and a reworded sentence shows only the words that moved. Viewers of a shared world can read
   history; only editors can restore.
-- **Panel comments** – co-writers can leave notes against any single panel of an element, then
-  resolve, reopen or delete them. Editors write, viewers read.
+- **Comments** – co-writers can start a thread on any single panel of an element or on a chapter,
+  reply to it, and resolve, reopen or delete it. Threads are one level deep: a reply always joins
+  the thread's first comment, and deleting that comment removes its replies. Editors write, viewers
+  read.
 - **Relationships** – labelled, directional edges (`mentor of` / `student of`) plus a
-  force-directed relationship map.
+  force-directed relationship map. Labels, notes and direction can be edited after the fact.
 - **Timeline** – events with free-form date labels, eras and a numeric sort key, so any
   calendar system works.
 - **Writing workspace** – the ✍️ Write entry opens a binder of manuscripts and chapters next to
@@ -272,9 +274,12 @@ SvelteKit (Svelte 5, TypeScript, Tailwind v4)
   Retention is fifty per document, pruned in the same call that inserts; rows with a label are
   pinned and exempt. An image referenced only by a revision is not counted as unused, so it
   survives the Settings cleanup until that revision is pruned.
-- `comments` hangs off an element and a `panel_id`. Panel ids live inside the panels JSON, so there
-  is no foreign key to lean on, and the element save path drops comments whose panel has been
-  removed — the same explicit cleanup the derived tables get.
+- `comments` hangs off either an element and a `panel_id`, or a chapter. Replies point at their
+  thread's first comment through `parent_id`, and a reply copies that comment's target, so every
+  row can be found by its element or chapter alone. Chapter comments and replies are removed by
+  foreign-key cascades; panel ids live inside the panels JSON, so there is no foreign key to lean
+  on there, and the element save path drops comments whose panel has been removed — the same
+  explicit cleanup the derived tables get.
 
 ### Schema changes
 
@@ -285,9 +290,12 @@ pnpm db:generate     # writes a new SQL migration into ./drizzle
 
 Migrations run on boot, so a container restart upgrades the database.
 
+Read the generated SQL before committing. When a change needs SQLite's table rebuild, drizzle-kit
+can copy columns that only exist in the new table (`0011_comment_threads.sql` was hand-fixed for
+exactly that), and it has dropped `ON DELETE` clauses before (`0008`).
+
 ## Roadmap ideas
 
-- Comment threads with replies, and comments on chapters as well as element panels
 - Letting a viewer of a shared world comment, which needs a deliberate exception to the rule that
   viewers cannot write
 - A structural diff for element revisions; today only chapter prose can be compared

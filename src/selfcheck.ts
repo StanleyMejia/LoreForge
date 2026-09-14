@@ -8,6 +8,7 @@ import { diffBlocks, diffWords } from './lib/diff.ts';
 import { xml, zip } from './lib/server/zip.ts';
 import { hit, sweep, type Window } from './lib/server/ratelimit.ts';
 import { syncSelectOptions, type Panel } from './lib/types.ts';
+import { threads } from './lib/comments.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -251,5 +252,22 @@ assert.equal(
 	false,
 	'fields the type does not define are left alone'
 );
+
+// Comment threads: replies group under their first comment, in order; a reply whose first comment
+// is missing still shows, as a thread of its own.
+const cm = (id: string, parentId: string | null = null) => ({ id, parentId });
+assert.deepEqual(
+	threads([cm('a'), cm('b'), cm('r1', 'a'), cm('r2', 'a'), cm('orphan', 'gone')]).map((t) => [
+		t.root.id,
+		t.replies.map((r) => r.id)
+	]),
+	[
+		['a', ['r1', 'r2']],
+		['b', []],
+		['orphan', []]
+	],
+	'replies group under their thread'
+);
+assert.deepEqual(threads([]), [], 'no comments, no threads');
 
 console.log('selfcheck ok');

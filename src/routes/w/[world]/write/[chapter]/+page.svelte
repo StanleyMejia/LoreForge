@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 	import ChapterReferences from '$lib/components/ChapterReferences.svelte';
+	import CommentThreads from '$lib/components/CommentThreads.svelte';
 	import { CHAPTER_STATUSES } from '$lib/types';
 	import { countWords } from '$lib/slug';
 
@@ -382,6 +383,11 @@
 						{/if}
 					</span>
 				</div>
+				<CommentThreads
+					comments={data.comments}
+					placeholder="Leave a note on this chapter…"
+					role="chapter-comments"
+				/>
 			{/if}
 		</div>
 	</div>
