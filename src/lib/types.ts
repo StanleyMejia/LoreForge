@@ -121,6 +121,32 @@ export function panelsFromTemplate(template: Panel[]): Panel[] {
 }
 
 /** All prose in an element (for wiki-link extraction and search). */
+/**
+ * Copy a type's select options onto an element's matching select fields (elements keep their own
+ * copy of field defs). An element's chosen value stays listed even if the type dropped it.
+ * Mutates `panels`; returns whether anything changed.
+ */
+export function syncSelectOptions(template: Panel[], panels: Panel[]): boolean {
+	const opts = new Map<string, string[]>();
+	for (const p of template)
+		if (p.kind === 'info')
+			for (const f of p.fields) if (f.kind === 'select') opts.set(f.key, f.options ?? []);
+	let changed = false;
+	for (const p of panels) {
+		if (p.kind !== 'info') continue;
+		for (const f of p.fields) {
+			const o = f.kind === 'select' ? opts.get(f.key) : undefined;
+			if (!o) continue;
+			const v = p.values[f.key];
+			const next = v && !o.includes(v) ? [...o, v] : [...o];
+			if (JSON.stringify(next) === JSON.stringify(f.options ?? [])) continue;
+			f.options = next;
+			changed = true;
+		}
+	}
+	return changed;
+}
+
 export function panelsText(panels: Panel[]): string {
 	const parts: string[] = [];
 	for (const p of panels) {

@@ -54,7 +54,7 @@ export const DEFAULT_TYPES: DefaultType[] = [
 		color: '#f59e0b',
 		panels: [
 			info('basic', 'Basic Information', [
-				sel('role', 'Role', ['Protagonist', 'Antagonist', 'Supporting', 'Minor']),
+				sel('role', 'Role', ['Protagonist', 'Antagonist', 'Major', 'Supporting', 'Minor']),
 				sel('status', 'Status', ['Alive', 'Dead', 'Unknown']),
 				txt('age', 'Age'),
 				txt('gender', 'Gender'),
