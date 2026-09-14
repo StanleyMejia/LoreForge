@@ -7,6 +7,7 @@ import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
 import { diffBlocks, diffWords } from './lib/diff.ts';
 import { xml, zip } from './lib/server/zip.ts';
 import { hit, sweep, type Window } from './lib/server/ratelimit.ts';
+import { syncSelectOptions, type Panel } from './lib/types.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -205,5 +206,50 @@ const aged = new Map<string, Window>([
 ]);
 sweep(aged, 1000);
 assert.deepEqual([...aged.keys()], ['live'], 'sweep drops expired windows only');
+
+// A type's select options reach elements, which keep their own copy of field defs.
+const role = (options: string[]) => ({
+	key: 'role',
+	label: 'Role',
+	kind: 'select' as const,
+	options
+});
+const tpl: Panel[] = [
+	{ id: 't', kind: 'info', title: 'B', fields: [role(['Lead', 'Major'])], values: {} }
+];
+const mk = (value: string): Panel[] => [
+	{
+		id: 'e',
+		kind: 'info',
+		title: 'B',
+		fields: [role(['Lead', 'Old'])],
+		values: value ? { role: value } : {}
+	}
+];
+const blank = mk('');
+assert.equal(syncSelectOptions(tpl, blank), true, 'new options are copied down');
+assert.deepEqual(blank[0].kind === 'info' && blank[0].fields[0].options, ['Lead', 'Major']);
+assert.equal(syncSelectOptions(tpl, blank), false, 'already in sync is a no-op');
+const chosen = mk('Old');
+syncSelectOptions(tpl, chosen);
+assert.deepEqual(
+	chosen[0].kind === 'info' && chosen[0].fields[0].options,
+	['Lead', 'Major', 'Old'],
+	'a dropped option that is still chosen stays listed'
+);
+const other: Panel[] = [
+	{
+		id: 'o',
+		kind: 'info',
+		title: 'B',
+		fields: [{ key: 'mood', label: 'Mood', kind: 'select', options: ['X'] }],
+		values: {}
+	}
+];
+assert.equal(
+	syncSelectOptions(tpl, other),
+	false,
+	'fields the type does not define are left alone'
+);
 
 console.log('selfcheck ok');

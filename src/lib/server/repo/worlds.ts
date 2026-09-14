@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { DEFAULT_TYPES } from '$lib/defaults';
+import { syncSelectOptions } from '$lib/types';
 import { slugify, uniquify } from '$lib/slug';
 import { removeWorldDir } from '../uploads';
 
@@ -166,7 +167,25 @@ export function updateType(
 		>
 	>
 ) {
-	return db.update(elementTypes).set(patch).where(eq(elementTypes.id, id)).returning().get();
+	return db.transaction((tx) => {
+		const type = tx
+			.update(elementTypes)
+			.set(patch)
+			.where(eq(elementTypes.id, id))
+			.returning()
+			.get();
+		if (patch.panels) {
+			const rows = tx
+				.select({ id: elements.id, panels: elements.panels })
+				.from(elements)
+				.where(eq(elements.typeId, id))
+				.all();
+			for (const e of rows)
+				if (syncSelectOptions(patch.panels, e.panels))
+					tx.update(elements).set({ panels: e.panels }).where(eq(elements.id, e.id)).run();
+		}
+		return type;
+	});
 }
 
 export function deleteType(id: string) {
