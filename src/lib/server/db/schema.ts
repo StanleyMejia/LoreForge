@@ -383,16 +383,26 @@ export const comments = sqliteTable(
 		worldId: text('world_id')
 			.notNull()
 			.references(() => worlds.id, { onDelete: 'cascade' }),
-		elementId: text('element_id')
-			.notNull()
-			.references(() => elements.id, { onDelete: 'cascade' }),
-		panelId: text('panel_id').notNull(),
+		/** Set for a comment on an element panel. Exactly one of elementId and chapterId is set. */
+		elementId: text('element_id').references(() => elements.id, { onDelete: 'cascade' }),
+		/** Set for a comment on a chapter. */
+		chapterId: text('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
+		/** The panel an element comment is on; empty for chapter comments. */
+		panelId: text('panel_id').notNull().default(''),
+		/** For a reply, the first comment of its thread. Threads are one level deep. */
+		parentId: text('parent_id').references((): AnySQLiteColumn => comments.id, {
+			onDelete: 'cascade'
+		}),
 		body: text('body').notNull(),
 		authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
 		resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
 		createdAt: now()
 	},
-	(t) => [index('comments_element').on(t.elementId, t.createdAt)]
+	(t) => [
+		index('comments_element').on(t.elementId, t.createdAt),
+		index('comments_chapter').on(t.chapterId, t.createdAt),
+		index('comments_parent').on(t.parentId)
+	]
 );
 
 export type Comment = typeof comments.$inferSelect;

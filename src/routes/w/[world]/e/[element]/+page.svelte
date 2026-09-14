@@ -180,6 +180,45 @@
 										<div class="text-xs text-slate-500">{r.label} {data.element.name}</div>
 									{/if}
 									{#if r.notes}<div class="text-xs text-slate-400">{r.notes}</div>{/if}
+									{#if !data.readonly}
+										{@const from = r.direction === 'out' ? data.element.name : r.other.name}
+										{@const to = r.direction === 'out' ? r.other.name : data.element.name}
+										<details class="mt-1" data-role="edit-relationship">
+											<summary class="cursor-pointer text-xs text-slate-500 hover:text-amber-300"
+												>Edit</summary
+											>
+											<form
+												method="POST"
+												action="?/editRelationship"
+												use:enhance
+												class="mt-2 space-y-2"
+											>
+												<input type="hidden" name="id" value={r.id} />
+												<p class="text-xs text-slate-500">{from} → {to}</p>
+												<input
+													class="input"
+													name="label"
+													value={r.rawLabel}
+													placeholder="Label, read from {from}"
+													required
+												/>
+												<input
+													class="input"
+													name="reverseLabel"
+													value={r.rawReverse}
+													placeholder="Reverse label, read from {to}"
+												/>
+												<input class="input" name="notes" value={r.notes} placeholder="Notes" />
+												<label class="flex items-center gap-2 text-xs text-slate-400">
+													<input type="checkbox" name="swap" /> Swap direction ({to} → {from})
+												</label>
+												{#if form?.relEditError && form?.relId === r.id}
+													<p class="text-xs text-red-400">{form.relEditError}</p>
+												{/if}
+												<button class="btn btn-sm" type="submit">Save</button>
+											</form>
+										</details>
+									{/if}
 								</div>
 								{#if !data.readonly}
 									<form method="POST" action="?/removeRelationship" use:enhance>

@@ -422,6 +422,9 @@ export function backlinks(worldSlug: string, elementId: string): Backlink[] {
 interface RelationshipView {
 	id: string;
 	label: string;
+	/** The stored labels, which read from `from` to `to` — what the edit form shows. */
+	rawLabel: string;
+	rawReverse: string;
 	notes: string;
 	direction: 'out' | 'in';
 	/** Incoming with no reverse label: `label` reads from the other element to this one. */
@@ -446,6 +449,8 @@ export function relationshipsFor(elementId: string): RelationshipView[] {
 		out.push({
 			id: r.id,
 			label: out_ ? r.label : r.reverseLabel || r.label,
+			rawLabel: r.label,
+			rawReverse: r.reverseLabel,
 			notes: r.notes,
 			direction: out_ ? 'out' : 'in',
 			unreversed: !out_ && !r.reverseLabel,
@@ -473,8 +478,40 @@ export function createRelationship(
 		.get();
 }
 
-export function deleteRelationship(id: string) {
-	db.delete(relationships).where(eq(relationships.id, id)).run();
+/**
+ * Edit a relationship that `elementId` takes part in. `swap` exchanges its two ends and keeps the
+ * labels as given, for a relationship that was added from the wrong side. Returns false when it
+ * is not in this world or does not involve the element.
+ */
+export function updateRelationship(
+	worldId: string,
+	elementId: string,
+	id: string,
+	input: { label: string; reverseLabel: string; notes: string; swap?: boolean }
+) {
+	const r = db
+		.select()
+		.from(relationships)
+		.where(and(eq(relationships.worldId, worldId), eq(relationships.id, id)))
+		.get();
+	if (!r || (r.fromId !== elementId && r.toId !== elementId)) return false;
+	touchWorld(worldId);
+	db.update(relationships)
+		.set({
+			label: input.label,
+			reverseLabel: input.reverseLabel,
+			notes: input.notes,
+			...(input.swap ? { fromId: r.toId, toId: r.fromId } : {})
+		})
+		.where(eq(relationships.id, r.id))
+		.run();
+	return true;
+}
+
+export function deleteRelationship(worldId: string, id: string) {
+	db.delete(relationships)
+		.where(and(eq(relationships.worldId, worldId), eq(relationships.id, id)))
+		.run();
 }
 
 export function allRelationships(worldId: string) {
