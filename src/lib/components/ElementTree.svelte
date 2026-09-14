@@ -12,12 +12,15 @@
 	let {
 		items,
 		base,
-		matched
+		matched,
+		openComments = {}
 	}: {
 		items: Item[];
 		base: string;
 		/** When filtering: the ids that actually matched. Others are context and stay muted. */
 		matched?: Set<string>;
+		/** Unresolved comment threads per element id. */
+		openComments?: Record<string, number>;
 	} = $props();
 	const dim = $derived((id: string) => !!matched?.size && !matched.has(id));
 
@@ -31,6 +34,13 @@
 		<span class="group-hover:text-amber-300 {dim(item.id) ? 'text-slate-500' : 'text-slate-200'}"
 			>{item.name}</span
 		>
+		{#if openComments[item.id]}
+			<span
+				class="chip"
+				title="{openComments[item.id]} open comment thread{openComments[item.id] === 1 ? '' : 's'}"
+				data-role="open-comments">💬 {openComments[item.id]}</span
+			>
+		{/if}
 		{#if item.summary}
 			<span class="muted hidden truncate text-xs sm:inline">{item.summary}</span>
 		{/if}

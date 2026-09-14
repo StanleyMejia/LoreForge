@@ -12,8 +12,10 @@
 			typeColor: string;
 		};
 		showType?: boolean;
+		/** Unresolved comment threads on this element; no badge when absent or zero. */
+		openComments?: number;
 	}
-	let { base, el, showType = false }: Props = $props();
+	let { base, el, showType = false, openComments = 0 }: Props = $props();
 </script>
 
 <a
@@ -39,6 +41,11 @@
 		<div class="flex items-baseline gap-2">
 			<h3 class="truncate font-semibold text-slate-50">{el.name}</h3>
 			{#if showType}<span class="text-xs text-slate-500">{el.typeName}</span>{/if}
+			{#if openComments}<span
+					class="chip ml-auto shrink-0"
+					title="{openComments} open comment thread{openComments === 1 ? '' : 's'}"
+					data-role="open-comments">💬 {openComments}</span
+				>{/if}
 		</div>
 		{#if el.summary}<p class="muted mt-0.5 line-clamp-2">{el.summary}</p>{/if}
 		{#if el.tags.length}

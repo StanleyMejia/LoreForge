@@ -105,8 +105,9 @@
 			<div>
 				<span class="label">Default panels for new {type.name.toLowerCase()}</span>
 				<p class="muted mb-3 text-xs">
-					Changing the template affects new elements only, except dropdown options, which are copied
-					to existing elements when you save.
+					Changing the template affects new elements, with two exceptions: attributes you add here,
+					and dropdown options, reach existing elements when you save. Removing or reordering
+					attributes never touches existing elements.
 				</p>
 				<PanelEditor bind:panels index={[]} elementBase="" {typeKeys} template />
 			</div>

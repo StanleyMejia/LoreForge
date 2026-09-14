@@ -48,11 +48,25 @@ const WRITE_LIMIT = 300;
 const WRITE_WINDOW_MS = 60_000;
 const writeHits = new Map<string, Window>();
 
+/**
+ * The client address for rate-limit keys. With ADDRESS_HEADER set, SvelteKit throws when a request
+ * arrives without that header — which only happens when something reaches the container without
+ * going through the proxy, such as a health probe or `docker exec`. Those share one placeholder key
+ * rather than turning into a 500.
+ */
+function clientAddress(event: Parameters<Handle>[0]['event']): string {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return 'unknown-address';
+	}
+}
+
 function writeLimit(event: Parameters<Handle>[0]['event']): Response | undefined {
 	if (['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) return;
 	if (writeHits.size > 5000) sweep(writeHits);
 	// Keyed by account where there is one, so one user cannot spend another's allowance.
-	const who = event.locals.user?.id ?? event.getClientAddress();
+	const who = event.locals.user?.id ?? clientAddress(event);
 	const { ok, retryAfter } = countRequest(writeHits, who, WRITE_LIMIT, WRITE_WINDOW_MS);
 	if (ok) return;
 	return new Response('Too many requests', {
@@ -68,7 +82,7 @@ function signinLimit(event: Parameters<Handle>[0]['event']): Response | undefine
 	if (signinHits.size > 5000) sweep(signinHits);
 	const { ok, retryAfter } = countRequest(
 		signinHits,
-		`${rule.path.source}:${event.getClientAddress()}`,
+		`${rule.path.source}:${clientAddress(event)}`,
 		rule.limit,
 		rule.windowMs
 	);
