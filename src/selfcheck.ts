@@ -7,7 +7,13 @@ import { ancestors, buildTree, MAX_DEPTH } from './lib/tree.ts';
 import { diffBlocks, diffWords } from './lib/diff.ts';
 import { xml, zip } from './lib/server/zip.ts';
 import { hit, sweep, type Window } from './lib/server/ratelimit.ts';
-import { syncSelectOptions, type Panel } from './lib/types.ts';
+import {
+	addNewFields,
+	locatedIn,
+	mirrorParent,
+	syncSelectOptions,
+	type Panel
+} from './lib/types.ts';
 import { threads } from './lib/comments.ts';
 
 const taken = new Set(['ash', 'ash-2']);
@@ -269,5 +275,52 @@ assert.deepEqual(
 	'replies group under their thread'
 );
 assert.deepEqual(threads([]), [], 'no comments, no threads');
+
+// New template attributes reach existing elements; attributes removed from one element stay removed.
+const field = (key: string) => ({ key, label: key, kind: 'text' as const });
+const info = (keys: string[], values: Record<string, string> = {}): Panel[] => [
+	{ id: 'i', kind: 'info', title: 'Basic Information', fields: keys.map(field), values }
+];
+const fieldKeys = (ps: Panel[]) => (ps[0].kind === 'info' ? ps[0].fields.map((f) => f.key) : []);
+const oldTpl = info(['role', 'age', 'gender']);
+const newTpl = info(['role', 'age', 'true_name', 'gender', 'motto']);
+const hero = info(['role', 'age', 'gender'], { role: 'Protagonist' });
+assert.equal(addNewFields(oldTpl, newTpl, hero), true, 'new template fields are added');
+assert.deepEqual(
+	fieldKeys(hero),
+	['role', 'age', 'true_name', 'gender', 'motto'],
+	'each lands after its predecessor'
+);
+assert.deepEqual(
+	hero[0].kind === 'info' && hero[0].values,
+	{ role: 'Protagonist' },
+	'values untouched, new fields empty'
+);
+assert.equal(addNewFields(oldTpl, newTpl, hero), false, 'already added is a no-op');
+const trimmed = info(['role', 'gender']); // this element had "age" removed on purpose
+addNewFields(oldTpl, newTpl, trimmed);
+assert.ok(
+	!fieldKeys(trimmed).includes('age'),
+	'a field that was already in the template is not re-added'
+);
+
+// The legacy "Located in" attribute mirrors Inside.
+const place = (): Panel[] => [
+	{
+		id: 'l',
+		kind: 'info',
+		title: 'B',
+		fields: [{ key: 'parent', label: 'Located in', kind: 'element', ref: 'location' }],
+		values: {}
+	}
+];
+const loc = place();
+assert.equal(locatedIn(loc), null, 'empty Located in reads as null');
+assert.equal(locatedIn(info(['role'])), undefined, 'no Located in attribute reads as undefined');
+assert.equal(mirrorParent(loc, 'nether'), true);
+assert.equal(locatedIn(loc), 'nether', 'mirrored');
+assert.equal(mirrorParent(loc, 'nether'), false, 'mirroring the same parent is a no-op');
+assert.equal(mirrorParent(loc, null), true);
+assert.equal(locatedIn(loc), null, 'clearing Inside clears Located in');
 
 console.log('selfcheck ok');

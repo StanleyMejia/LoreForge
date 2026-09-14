@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import type { CommentView } from '$lib/comments';
 
@@ -57,6 +57,25 @@ export function commentsByChapter(worldId: string, manuscriptId: string) {
 	const out = new Map<string, CommentView[]>();
 	for (const { chapterId, ...c } of rows) out.set(chapterId!, [...(out.get(chapterId!) ?? []), c]);
 	return out;
+}
+
+/** Open (unresolved) thread counts per element or per chapter, for list and binder badges. */
+export function openThreads(worldId: string, by: 'element' | 'chapter'): Record<string, number> {
+	const target = by === 'element' ? comments.elementId : comments.chapterId;
+	const rows = db
+		.select({ id: target, n: sql<number>`count(*)` })
+		.from(comments)
+		.where(
+			and(
+				eq(comments.worldId, worldId),
+				isNotNull(target),
+				isNull(comments.parentId),
+				isNull(comments.resolvedAt)
+			)
+		)
+		.groupBy(target)
+		.all();
+	return Object.fromEntries(rows.map((r) => [r.id!, r.n]));
 }
 
 type Target = { elementId: string; panelId: string } | { chapterId: string };

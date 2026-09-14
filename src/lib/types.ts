@@ -147,6 +147,64 @@ export function syncSelectOptions(template: Panel[], panels: Panel[]): boolean {
 	return changed;
 }
 
+/**
+ * Add attributes a type's template has gained to an element's matching info panel, empty. Only
+ * fields that are new since `before` are added, so a field someone removed from one element on
+ * purpose is not put back by an unrelated save. Each lands after the field that precedes it in the
+ * template when the element has that field, otherwise at the end. Mutates `panels`; returns whether
+ * anything changed.
+ */
+export function addNewFields(before: Panel[], after: Panel[], panels: Panel[]): boolean {
+	const had = new Set<string>();
+	for (const p of before) if (p.kind === 'info') for (const f of p.fields) had.add(f.key);
+	let changed = false;
+	for (const tp of after) {
+		if (tp.kind !== 'info') continue;
+		const target =
+			panels.find((p) => p.kind === 'info' && p.title === tp.title) ??
+			panels.find((p) => p.kind === 'info');
+		if (!target || target.kind !== 'info') continue;
+		tp.fields.forEach((f, i) => {
+			if (had.has(f.key) || target.fields.some((x) => x.key === f.key)) return;
+			const prev = tp.fields
+				.slice(0, i)
+				.reverse()
+				.find((x) => target.fields.some((y) => y.key === x.key));
+			const at = prev
+				? target.fields.findIndex((y) => y.key === prev.key) + 1
+				: target.fields.length;
+			target.fields.splice(at, 0, { ...f });
+			changed = true;
+		});
+	}
+	return changed;
+}
+
+/** Key of the legacy "Located in" attribute that older Location templates carry beside Inside. */
+export const LOCATED_IN = 'parent';
+
+/** The legacy "Located in" value on an element, if it has that attribute. */
+export function locatedIn(panels: Panel[]): string | null | undefined {
+	for (const p of panels)
+		if (p.kind === 'info' && p.fields.some((f) => f.key === LOCATED_IN && f.kind === 'element'))
+			return p.values[LOCATED_IN] || null;
+	return undefined;
+}
+
+/** Set the legacy "Located in" attribute to `parentId`. Mutates; returns whether anything changed. */
+export function mirrorParent(panels: Panel[], parentId: string | null): boolean {
+	let changed = false;
+	for (const p of panels) {
+		if (p.kind !== 'info') continue;
+		if (!p.fields.some((f) => f.key === LOCATED_IN && f.kind === 'element')) continue;
+		if ((p.values[LOCATED_IN] || null) === parentId) continue;
+		if (parentId) p.values[LOCATED_IN] = parentId;
+		else delete p.values[LOCATED_IN];
+		changed = true;
+	}
+	return changed;
+}
+
 export function panelsText(panels: Panel[]): string {
 	const parts: string[] = [];
 	for (const p of panels) {

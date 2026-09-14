@@ -3,12 +3,17 @@ import type { Actions, PageServerLoad } from './$types';
 import { getType } from '$lib/server/repo/worlds';
 import { createElement, listElements } from '$lib/server/repo/elements';
 import { str } from '$lib/server/form';
+import { openThreads } from '$lib/server/repo/comments';
 
 export const load: PageServerLoad = async ({ params, parent }) => {
 	const { world } = await parent();
 	const type = getType(world.id, params.type);
 	if (!type) error(404, 'Unknown element type');
-	return { type, elements: listElements(world.id, type.id) };
+	return {
+		type,
+		elements: listElements(world.id, type.id),
+		openComments: openThreads(world.id, 'element')
+	};
 };
 
 export const actions: Actions = {

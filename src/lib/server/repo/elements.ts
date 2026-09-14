@@ -3,7 +3,7 @@ import { db, schema } from '../db';
 import { slugify, uniquify } from '$lib/slug';
 import { ancestors, MAX_DEPTH } from '$lib/tree';
 import { extractWikiLinks } from '$lib/markdown';
-import { panelsFromTemplate, panelsText, type Panel } from '$lib/types';
+import { panelsFromTemplate, panelsText, type Panel, locatedIn, mirrorParent } from '$lib/types';
 import { touchWorld } from './worlds';
 import { indexElement, removeFromIndex } from './search';
 import { deleteRevisions, maybeRevision } from './revisions';
@@ -145,6 +145,11 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 				.where(eq(elementTypes.id, typeId))
 				.get()?.panels ?? []
 		);
+	// Older Location templates also carry a "Located in" attribute. Inside wins; a "Located in"
+	// set without an Inside is adopted, and the attribute is then kept in step with Inside.
+	const proposed = input.parentId ?? locatedIn(panels) ?? null;
+	const parentId = parentProblem(worldId, null, proposed) ? null : proposed;
+	mirrorParent(panels, parentId);
 	const row = db
 		.insert(elements)
 		.values({
@@ -156,9 +161,7 @@ export function createElement(worldId: string, typeId: string, input: ElementInp
 			panels,
 			tags: input.tags ?? [],
 			imageUrl: input.imageUrl ?? '',
-			parentId: parentProblem(worldId, null, input.parentId ?? null)
-				? null
-				: (input.parentId ?? null)
+			parentId
 		})
 		.returning()
 		.get();
@@ -180,13 +183,23 @@ export function updateElement(
 	const name = input.name.trim();
 	const slug = name === existing.name ? existing.slug : uniqueSlug(worldId, name, id);
 	const summary = input.summary ?? existing.summary;
-	const panels = input.panels ?? existing.panels;
+	// Cloned so mirroring "Located in" below can't alter `existing` and hide the change.
+	const panels = input.panels ?? structuredClone(existing.panels);
 	const tags = input.tags ?? existing.tags;
 	const imageUrl = input.imageUrl ?? existing.imageUrl;
 	const typeId = input.typeId ?? existing.typeId;
 	// An invalid parent is refused rather than stored, whatever the caller passed.
-	const proposed = input.parentId === undefined ? existing.parentId : input.parentId;
+	let proposed = input.parentId === undefined ? existing.parentId : input.parentId;
+	// A change made only to the legacy "Located in" attribute is taken as a change of Inside.
+	const legacy = locatedIn(panels);
+	if (
+		proposed === existing.parentId &&
+		legacy !== undefined &&
+		legacy !== locatedIn(existing.panels)
+	)
+		proposed = legacy;
 	const parentId = parentProblem(worldId, id, proposed) ? existing.parentId : proposed;
+	mirrorParent(panels, parentId);
 	// cleanPanels canonicalises panels on every write, so their JSON is byte-comparable.
 	// ponytail: a reordered-but-equivalent panels array counts as changed. The cost is one
 	// spare revision, never a wrong result; compare structurally if that ever matters.

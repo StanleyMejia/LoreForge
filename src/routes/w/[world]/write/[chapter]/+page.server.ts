@@ -15,6 +15,7 @@ import {
 	addComment,
 	deleteComment,
 	listChapterComments,
+	openThreads,
 	setCommentResolved
 } from '$lib/server/repo/comments';
 import { str } from '$lib/server/form';
@@ -28,6 +29,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		binder: binder(world.id),
 		refs: chapterRefsFor(chapter.id),
 		comments: listChapterComments(world.id, chapter.id),
+		openComments: openThreads(world.id, 'chapter'),
 		events: listEvents(world.id).map((e) => ({ id: e.id, title: e.title, dateLabel: e.dateLabel }))
 	};
 };

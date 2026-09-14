@@ -73,12 +73,12 @@
 
 {#if shown.length && nested}
 	<div class="card">
-		<ElementTree items={branch} {base} {matched} />
+		<ElementTree items={branch} {base} {matched} openComments={data.openComments} />
 	</div>
 {:else if shown.length}
 	<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
 		{#each shown as el (el.id)}
-			<ElementCard {base} {el} />
+			<ElementCard {base} {el} openComments={data.openComments[el.id]} />
 		{/each}
 	</div>
 {:else}

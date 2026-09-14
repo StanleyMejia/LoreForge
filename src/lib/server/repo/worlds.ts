@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { DEFAULT_TYPES } from '$lib/defaults';
-import { syncSelectOptions } from '$lib/types';
+import { addNewFields, syncSelectOptions } from '$lib/types';
 import { slugify, uniquify } from '$lib/slug';
 import { removeWorldDir } from '../uploads';
 
@@ -168,6 +168,14 @@ export function updateType(
 	>
 ) {
 	return db.transaction((tx) => {
+		// The template as it was, so only attributes added by this save reach existing elements.
+		const before = patch.panels
+			? (tx
+					.select({ panels: elementTypes.panels })
+					.from(elementTypes)
+					.where(eq(elementTypes.id, id))
+					.get()?.panels ?? [])
+			: [];
 		const type = tx
 			.update(elementTypes)
 			.set(patch)
@@ -180,9 +188,12 @@ export function updateType(
 				.from(elements)
 				.where(eq(elements.typeId, id))
 				.all();
-			for (const e of rows)
-				if (syncSelectOptions(patch.panels, e.panels))
+			for (const e of rows) {
+				const options = syncSelectOptions(patch.panels, e.panels);
+				const fields = addNewFields(before, patch.panels, e.panels);
+				if (options || fields)
 					tx.update(elements).set({ panels: e.panels }).where(eq(elements.id, e.id)).run();
+			}
 		}
 		return type;
 	});

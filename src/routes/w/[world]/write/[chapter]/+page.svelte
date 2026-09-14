@@ -194,6 +194,15 @@
 										<span class="min-w-0 flex-1 truncate"
 											>{c.id === data.chapter.id ? title || 'Untitled' : c.title}</span
 										>
+										{#if data.openComments[c.id]}<span
+												class="text-[10px] text-amber-400"
+												title="{data.openComments[c.id]} open comment thread{data.openComments[
+													c.id
+												] === 1
+													? ''
+													: 's'}"
+												data-role="open-comments">💬{data.openComments[c.id]}</span
+											>{/if}
 										<span class="text-[10px] {statusColor[c.status] ?? ''}" title={c.status}>●</span
 										>
 									</button>
