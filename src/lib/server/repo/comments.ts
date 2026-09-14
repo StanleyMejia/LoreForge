@@ -1,22 +1,22 @@
-import { and, asc, eq, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import type { CommentView } from '$lib/comments';
 
-const { comments, users } = schema;
+const { chapters, comments, users } = schema;
+
+const view = {
+	id: comments.id,
+	parentId: comments.parentId,
+	panelId: comments.panelId,
+	body: comments.body,
+	createdAt: comments.createdAt,
+	resolvedAt: comments.resolvedAt,
+	author: sql<string | null>`nullif(coalesce(nullif(${users.name}, ''), ${users.email}, ''), '')`
+};
 
 function listWhere(where: ReturnType<typeof and>): CommentView[] {
 	return db
-		.select({
-			id: comments.id,
-			parentId: comments.parentId,
-			panelId: comments.panelId,
-			body: comments.body,
-			createdAt: comments.createdAt,
-			resolvedAt: comments.resolvedAt,
-			author: sql<
-				string | null
-			>`nullif(coalesce(nullif(${users.name}, ''), ${users.email}, ''), '')`
-		})
+		.select(view)
 		.from(comments)
 		.leftJoin(users, eq(users.id, comments.authorId))
 		.where(where)
@@ -32,6 +32,31 @@ export function listComments(worldId: string, elementId: string) {
 /** Every comment on a chapter, oldest first. */
 export function listChapterComments(worldId: string, chapterId: string) {
 	return listWhere(and(eq(comments.worldId, worldId), eq(comments.chapterId, chapterId)));
+}
+
+/** Comments on every chapter of a manuscript in one query, grouped by chapter id. */
+export function commentsByChapter(worldId: string, manuscriptId: string) {
+	const rows = db
+		.select({ ...view, chapterId: comments.chapterId })
+		.from(comments)
+		.leftJoin(users, eq(users.id, comments.authorId))
+		.where(
+			and(
+				eq(comments.worldId, worldId),
+				inArray(
+					comments.chapterId,
+					db
+						.select({ id: chapters.id })
+						.from(chapters)
+						.where(eq(chapters.manuscriptId, manuscriptId))
+				)
+			)
+		)
+		.orderBy(asc(comments.createdAt))
+		.all();
+	const out = new Map<string, CommentView[]>();
+	for (const { chapterId, ...c } of rows) out.set(chapterId!, [...(out.get(chapterId!) ?? []), c]);
+	return out;
 }
 
 type Target = { elementId: string; panelId: string } | { chapterId: string };
