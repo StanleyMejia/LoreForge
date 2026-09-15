@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getTypeById } from '$lib/server/repo/worlds';
 import { getElement, getElementsByIds } from '$lib/server/repo/elements';
+import { refList } from '$lib/types';
 
 /**
  * Lightweight "peek" at an element for the chapter editor's reference panel:
@@ -17,8 +18,7 @@ export const GET: RequestHandler = ({ params, locals }) => {
 	const refIds: string[] = [];
 	for (const p of el.panels)
 		if (p.kind === 'info')
-			for (const f of p.fields)
-				if (f.kind === 'element' && p.values[f.key]) refIds.push(p.values[f.key]);
+			for (const f of p.fields) if (f.kind === 'element') refIds.push(...refList(p.values[f.key]));
 	const refs = new Map(getElementsByIds(refIds).map((e) => [e.id, e]));
 
 	const attributes: { label: string; value: string }[] = [];
@@ -31,7 +31,13 @@ export const GET: RequestHandler = ({ params, locals }) => {
 				if (!raw) continue;
 				attributes.push({
 					label: f.label,
-					value: f.kind === 'element' ? (refs.get(raw)?.name ?? '') : raw
+					value:
+						f.kind === 'element'
+							? refList(raw)
+									.map((id) => refs.get(id)?.name)
+									.filter(Boolean)
+									.join(', ')
+							: raw
 				});
 			}
 		} else if (p.kind === 'list' && p.items.length) {

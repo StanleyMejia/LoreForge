@@ -7,6 +7,19 @@ export interface CommentView {
 	createdAt: Date;
 	resolvedAt: Date | null;
 	author: string | null;
+	authorId: string | null;
+}
+
+/**
+ * The one deliberate exception to "viewers cannot write": a viewer of a shared world may post a
+ * comment or reply, and delete their own, on an element page or a manuscript's read-through.
+ * `rest` is the path inside the world (`/e/lucas`), `search` the request's query string. Exactly
+ * one form action must be named, so a second action cannot ride along on an allowed one.
+ */
+export function viewerMayPost(rest: string, search: string): boolean {
+	if (!/^\/e\/[^/]+$/.test(rest) && !/^\/m\/[^/]+\/read$/.test(rest)) return false;
+	const keys = [...new URLSearchParams(search).keys()];
+	return keys.length === 1 && (keys[0] === '/comment' || keys[0] === '/deleteComment');
 }
 
 export interface Thread<T> {

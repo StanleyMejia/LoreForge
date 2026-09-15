@@ -11,7 +11,8 @@ const view = {
 	body: comments.body,
 	createdAt: comments.createdAt,
 	resolvedAt: comments.resolvedAt,
-	author: sql<string | null>`nullif(coalesce(nullif(${users.name}, ''), ${users.email}, ''), '')`
+	author: sql<string | null>`nullif(coalesce(nullif(${users.name}, ''), ${users.email}, ''), '')`,
+	authorId: comments.authorId
 };
 
 function listWhere(where: ReturnType<typeof and>): CommentView[] {
@@ -138,10 +139,25 @@ export function setCommentResolved(worldId: string, id: string, resolved: boolea
 		.run();
 }
 
-/** Delete a comment. Deleting a thread's first comment deletes its replies (foreign key cascade). */
-export function deleteComment(worldId: string, id: string) {
+/**
+ * Delete a comment. Deleting a thread's first comment deletes its replies (foreign key cascade).
+ * With `onlyAuthor` — a viewer deleting — only that author's own comment goes, and only while no
+ * one has replied to it, so a viewer can never take other people's replies down with it.
+ */
+export function deleteComment(worldId: string, id: string, onlyAuthor?: string) {
 	db.delete(comments)
-		.where(and(eq(comments.worldId, worldId), eq(comments.id, id)))
+		.where(
+			and(
+				eq(comments.worldId, worldId),
+				eq(comments.id, id),
+				onlyAuthor === undefined
+					? undefined
+					: and(
+							eq(comments.authorId, onlyAuthor),
+							sql`not exists (select 1 from comments r where r.parent_id = ${comments.id})`
+						)
+			)
+		)
 		.run();
 }
 

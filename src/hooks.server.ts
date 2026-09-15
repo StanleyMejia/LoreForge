@@ -6,6 +6,7 @@ import { getWorldBySlug } from '$lib/server/repo/worlds';
 import { getChapterInWorld } from '$lib/server/repo/manuscripts';
 import { canEdit, roleFor } from '$lib/server/repo/members';
 import { hit as countRequest, sweep, type Window } from '$lib/server/ratelimit';
+import { viewerMayPost } from '$lib/comments';
 
 /** Paths reachable without a session. Static assets never reach this hook (served by the adapter). */
 const PUBLIC = [/^\/healthz$/, /^\/login$/, /^\/auth\//, /^\/favicon/];
@@ -137,8 +138,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.world = { id: world.id, slug: world.slug, role };
 		const mutating = !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method);
 		if (!canEdit(role)) {
-			if (mutating) error(403, 'You have view-only access to this world');
 			const rest = m[2] ?? '';
+			if (mutating && !viewerMayPost(rest, event.url.search))
+				error(403, 'You have view-only access to this world');
 			if (EDIT_PAGES.some((re) => re.test(rest)))
 				error(403, 'You have view-only access to this world');
 			// Viewers opening a chapter editor are sent to the read-through view instead.

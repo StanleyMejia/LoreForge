@@ -9,6 +9,47 @@ export interface FieldDef {
 	options?: string[];
 	/** For kind === 'element': restrict to elements of this type key (empty = any) */
 	ref?: string;
+	/** For kind === 'element': holds several references, stored comma-separated in the value. */
+	multiple?: boolean;
+}
+
+/** The element ids in an element attribute value — one for a single field, any number for a multiple. */
+export function refList(value: string | undefined | null): string[] {
+	return [
+		...new Set(
+			(value ?? '')
+				.split(',')
+				.map((s) => s.trim())
+				.filter(Boolean)
+		)
+	];
+}
+
+/**
+ * Copy the template's "allow several" setting onto the same-key element fields of an element, so
+ * switching a type's field to multiple takes effect on elements that already exist. A field turned
+ * back to single keeps only its first reference. Mutates; returns whether anything changed.
+ */
+export function syncMultiple(template: Panel[], panels: Panel[]): boolean {
+	const multi = new Map<string, boolean>();
+	for (const p of template)
+		if (p.kind === 'info')
+			for (const f of p.fields) if (f.kind === 'element') multi.set(f.key, !!f.multiple);
+	let changed = false;
+	for (const p of panels) {
+		if (p.kind !== 'info') continue;
+		for (const f of p.fields) {
+			if (f.kind !== 'element' || !multi.has(f.key) || !!f.multiple === multi.get(f.key)) continue;
+			if (multi.get(f.key)) f.multiple = true;
+			else {
+				delete f.multiple;
+				const first = refList(p.values[f.key])[0];
+				if (first) p.values[f.key] = first;
+			}
+			changed = true;
+		}
+	}
+	return changed;
 }
 
 export type PanelKind = 'info' | 'text' | 'list' | 'stats' | 'links' | 'gallery' | 'map';
@@ -242,6 +283,8 @@ export type ViewPanel =
 				value: string;
 				href: string | null;
 				icon: string | null;
+				/** Every resolved reference, for an element attribute that holds several. */
+				refs?: { name: string; href: string; icon: string }[];
 			}[];
 	  }
 	| { id: string; kind: 'text'; title: string; html: string }

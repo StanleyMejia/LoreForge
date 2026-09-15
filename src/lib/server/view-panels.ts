@@ -1,13 +1,13 @@
 import { getElementsByIds, mapOwners } from './repo/elements';
 import { renderMarkdown, type RenderContext } from '$lib/markdown';
-import type { Panel, ViewPanel } from '$lib/types';
+import { refList, type Panel, type ViewPanel } from '$lib/types';
 
 export function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext): ViewPanel[] {
 	const refIds = new Set<string>();
 	for (const p of panels) {
 		if (p.kind === 'info')
 			for (const f of p.fields)
-				if (f.kind === 'element' && p.values[f.key]) refIds.add(p.values[f.key]);
+				if (f.kind === 'element') for (const id of refList(p.values[f.key])) refIds.add(id);
 		if (p.kind === 'links') for (const l of p.links) refIds.add(l.elementId);
 		if (p.kind === 'map') for (const pin of p.pins) if (pin.elementId) refIds.add(pin.elementId);
 	}
@@ -27,16 +27,28 @@ export function prepare(panels: Panel[], worldSlug: string, ctx: RenderContext):
 					const raw = p.values[f.key];
 					if (!raw) continue;
 					if (f.kind === 'element') {
-						const r = refs.get(raw);
-						if (r)
-							rows.push({
-								key: f.key,
-								label: f.label,
-								kind: f.kind,
-								value: r.name,
-								href: `/w/${worldSlug}/e/${r.slug}`,
-								icon: r.typeIcon
-							});
+						const found = refList(raw)
+							.map((id) => refs.get(id))
+							.filter((r) => r !== undefined);
+						if (!found.length) continue;
+						const [r] = found;
+						rows.push({
+							key: f.key,
+							label: f.label,
+							kind: f.kind,
+							value: found.map((x) => x.name).join(', '),
+							href: `/w/${worldSlug}/e/${r.slug}`,
+							icon: r.typeIcon,
+							...(f.multiple
+								? {
+										refs: found.map((x) => ({
+											name: x.name,
+											href: `/w/${worldSlug}/e/${x.slug}`,
+											icon: x.typeIcon
+										}))
+									}
+								: {})
+						});
 					} else
 						rows.push({
 							key: f.key,

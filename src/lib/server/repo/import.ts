@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { slugify, uniquify } from '$lib/slug';
 import { num, str } from '../coerce';
-import { panelsText, type Panel } from '$lib/types';
+import { panelsText, type Panel, refList } from '$lib/types';
 import { cleanPanels } from '../panels';
 import { copyStored } from '../uploads';
 import { syncLinks, syncMapPins } from './elements';
@@ -106,9 +106,7 @@ export function importWorld(
 			if (p.kind === 'info') {
 				for (const f of p.fields) {
 					if (f.kind !== 'element') continue;
-					const current = p.values[f.key];
-					if (!current) continue;
-					const to = remapElement(current);
+					const to = refList(p.values[f.key]).map(remapElement).filter(Boolean).join(',');
 					if (to) p.values[f.key] = to;
 					else delete p.values[f.key];
 				}
@@ -213,7 +211,8 @@ export function importWorld(
 					imageUrl: remapText(str(e.imageUrl, 2000)),
 					// Set after the insert: a child may precede its parent in the bundle, and the
 					// self-referencing foreign key is checked per row.
-					parentId: null
+					parentId: null,
+					sortOrder: typeof e.sortOrder === 'number' ? Math.trunc(e.sortOrder) : 0
 				};
 			})
 			.filter((r) => r !== null);

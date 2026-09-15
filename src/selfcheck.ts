@@ -9,12 +9,14 @@ import { xml, zip } from './lib/server/zip.ts';
 import { hit, sweep, type Window } from './lib/server/ratelimit.ts';
 import {
 	addNewFields,
+	refList,
+	syncMultiple,
 	locatedIn,
 	mirrorParent,
 	syncSelectOptions,
 	type Panel
 } from './lib/types.ts';
-import { threads } from './lib/comments.ts';
+import { threads, viewerMayPost } from './lib/comments.ts';
 
 const taken = new Set(['ash', 'ash-2']);
 assert.equal(
@@ -276,6 +278,20 @@ assert.deepEqual(
 );
 assert.deepEqual(threads([]), [], 'no comments, no threads');
 
+// Viewers may post and delete their own comments on element pages and read-throughs, nothing else.
+assert.ok(viewerMayPost('/e/lucas-vega', '?/comment'), 'viewer comments on an element');
+assert.ok(viewerMayPost('/m/abc/read', '?/deleteComment'), 'viewer deletes on a read-through');
+assert.ok(!viewerMayPost('/e/lucas-vega', '?/resolveComment'), 'resolving stays with editors');
+assert.ok(!viewerMayPost('/e/lucas-vega', '?/editRelationship'), 'other element actions refused');
+assert.ok(
+	!viewerMayPost('/e/lucas-vega', '?/comment&/delete'),
+	'a second action cannot ride along'
+);
+assert.ok(!viewerMayPost('/e/lucas-vega', ''), 'the default action is refused');
+assert.ok(!viewerMayPost('/e/lucas-vega/edit', '?/comment'), 'edit page refused');
+assert.ok(!viewerMayPost('/write/abc', '?/comment'), 'the chapter editor stays editor-only');
+assert.ok(!viewerMayPost('/api/uploads', '?/comment'), 'endpoints refused');
+
 // New template attributes reach existing elements; attributes removed from one element stay removed.
 const field = (key: string) => ({ key, label: key, kind: 'text' as const });
 const info = (keys: string[], values: Record<string, string> = {}): Panel[] => [
@@ -322,5 +338,34 @@ assert.equal(locatedIn(loc), 'nether', 'mirrored');
 assert.equal(mirrorParent(loc, 'nether'), false, 'mirroring the same parent is a no-op');
 assert.equal(mirrorParent(loc, null), true);
 assert.equal(locatedIn(loc), null, 'clearing Inside clears Located in');
+
+// Element attributes that hold several references.
+assert.deepEqual(refList('a, b,,a , c'), ['a', 'b', 'c'], 'split, trimmed, de-duplicated');
+assert.deepEqual(refList(undefined), [], 'no value, no refs');
+const refField = (multiple?: boolean) => ({
+	key: 'species',
+	label: 'Species',
+	kind: 'element' as const,
+	ref: 'species',
+	...(multiple ? { multiple } : {})
+});
+const withRefs = (multiple: boolean, value: string): Panel[] => [
+	{ id: 'r', kind: 'info', title: 'B', fields: [refField(multiple)], values: { species: value } }
+];
+const single = withRefs(false, 'demons');
+assert.equal(
+	syncMultiple(withRefs(true, ''), single),
+	true,
+	'turning a template field multiple reaches the element'
+);
+assert.equal(single[0].kind === 'info' && single[0].fields[0].multiple, true);
+assert.equal(syncMultiple(withRefs(true, ''), single), false, 'already in sync');
+const several = withRefs(true, 'demons,angels');
+syncMultiple(withRefs(false, ''), several);
+assert.deepEqual(
+	several[0].kind === 'info' && [several[0].fields[0].multiple, several[0].values.species],
+	[undefined, 'demons'],
+	'back to single keeps the first reference'
+);
 
 console.log('selfcheck ok');

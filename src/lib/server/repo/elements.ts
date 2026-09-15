@@ -3,7 +3,14 @@ import { db, schema } from '../db';
 import { slugify, uniquify } from '$lib/slug';
 import { ancestors, MAX_DEPTH } from '$lib/tree';
 import { extractWikiLinks } from '$lib/markdown';
-import { panelsFromTemplate, panelsText, type Panel, locatedIn, mirrorParent } from '$lib/types';
+import {
+	locatedIn,
+	mirrorParent,
+	panelsFromTemplate,
+	panelsText,
+	refList,
+	type Panel
+} from '$lib/types';
 import { touchWorld } from './worlds';
 import { indexElement, removeFromIndex } from './search';
 import { deleteRevisions, maybeRevision } from './revisions';
@@ -22,6 +29,7 @@ const listCols = {
 	imageUrl: elements.imageUrl,
 	typeId: elements.typeId,
 	parentId: elements.parentId,
+	sortOrder: elements.sortOrder,
 	updatedAt: elements.updatedAt,
 	typeKey: elementTypes.key,
 	typeName: elementTypes.singular,
@@ -266,8 +274,29 @@ export function childrenOf(worldId: string, parentId: string) {
 		.from(elements)
 		.innerJoin(elementTypes, eq(elementTypes.id, elements.typeId))
 		.where(and(eq(elements.worldId, worldId), eq(elements.parentId, parentId)))
-		.orderBy(asc(elementTypes.sortOrder), asc(elements.name))
+		.orderBy(asc(elements.sortOrder), asc(elementTypes.sortOrder), asc(elements.name))
 		.all();
+}
+
+/**
+ * Move a child one place up or down among its siblings. Siblings are renumbered densely in their
+ * current order first, so elements never moved keep sharing order 0 (sorted by type, then name) until
+ * one of them is. Returns false when the element has no parent.
+ */
+export function moveChild(worldId: string, id: string, dir: 'up' | 'down') {
+	const el = getElementById(id);
+	if (!el || el.worldId !== worldId || !el.parentId) return false;
+	const siblings = childrenOf(worldId, el.parentId).map((c) => c.id);
+	const i = siblings.indexOf(id);
+	const j = dir === 'up' ? i - 1 : i + 1;
+	if (j < 0 || j >= siblings.length) return true;
+	[siblings[i], siblings[j]] = [siblings[j], siblings[i]];
+	db.transaction((tx) => {
+		siblings.forEach((sid, n) =>
+			tx.update(elements).set({ sortOrder: n }).where(eq(elements.id, sid)).run()
+		);
+	});
+	return true;
 }
 
 /**
@@ -298,7 +327,7 @@ export function referencedBy(worldId: string, elementId: string) {
 		for (const p of r.panels) {
 			if (p.kind !== 'info') continue;
 			for (const f of p.fields) {
-				if (f.kind !== 'element' || p.values[f.key] !== elementId) continue;
+				if (f.kind !== 'element' || !refList(p.values[f.key]).includes(elementId)) continue;
 				const g = groups.get(f.label) ?? { label: f.label, items: [] };
 				// Two same-label fields pointing at the same target should list the element once.
 				if (!g.items.some((i) => i.id === r.id))
@@ -500,7 +529,14 @@ export function updateRelationship(
 	worldId: string,
 	elementId: string,
 	id: string,
-	input: { label: string; reverseLabel: string; notes: string; swap?: boolean }
+	input: {
+		label: string;
+		reverseLabel: string;
+		notes: string;
+		swap?: boolean;
+		/** Replace the other end: the element on the far side from `elementId`. */
+		otherId?: string;
+	}
 ) {
 	const r = db
 		.select()
@@ -508,14 +544,16 @@ export function updateRelationship(
 		.where(and(eq(relationships.worldId, worldId), eq(relationships.id, id)))
 		.get();
 	if (!r || (r.fromId !== elementId && r.toId !== elementId)) return false;
+	let { fromId, toId } = r;
+	if (input.otherId) {
+		if (fromId === elementId) toId = input.otherId;
+		else fromId = input.otherId;
+	}
+	if (input.swap) [fromId, toId] = [toId, fromId];
+	if (fromId === toId) return false;
 	touchWorld(worldId);
 	db.update(relationships)
-		.set({
-			label: input.label,
-			reverseLabel: input.reverseLabel,
-			notes: input.notes,
-			...(input.swap ? { fromId: r.toId, toId: r.fromId } : {})
-		})
+		.set({ label: input.label, reverseLabel: input.reverseLabel, notes: input.notes, fromId, toId })
 		.where(eq(relationships.id, r.id))
 		.run();
 	return true;
