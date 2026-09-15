@@ -8,6 +8,7 @@
 		summary: string;
 		typeIcon: string;
 		parentId?: string | null;
+		sortOrder?: number;
 	}
 	let {
 		items,
@@ -25,7 +26,10 @@
 	const dim = $derived((id: string) => !!matched?.size && !matched.has(id));
 
 	// A parent outside `items` (another type, or filtered out) leaves its child at the top level.
-	const roots = $derived(buildTree(items));
+	// Siblings follow their manual order; untouched ones share 0 and keep the incoming (name) order.
+	const roots = $derived(
+		buildTree([...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)))
+	);
 </script>
 
 {#snippet label(item: Item)}

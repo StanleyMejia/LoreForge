@@ -72,6 +72,8 @@ export const elements = sqliteTable(
 		parentId: text('parent_id').references((): AnySQLiteColumn => elements.id, {
 			onDelete: 'set null'
 		}),
+		/** Manual order among siblings (children of one parent). 0 until someone reorders them. */
+		sortOrder: integer('sort_order').notNull().default(0),
 		createdAt: now(),
 		updatedAt: updated()
 	},

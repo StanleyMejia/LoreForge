@@ -12,6 +12,7 @@ import {
 	getElement,
 	getElementById,
 	relationshipsFor,
+	moveChild,
 	onMaps,
 	updateRelationship
 } from '$lib/server/repo/elements';
@@ -25,6 +26,7 @@ import {
 	listComments,
 	setCommentResolved
 } from '$lib/server/repo/comments';
+import { canEdit } from '$lib/server/repo/members';
 
 export const load: PageServerLoad = async ({ params, parent }) => {
 	const { world, index } = await parent();
@@ -50,7 +52,8 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 };
 
 export const actions: Actions = {
-	// Every action is a POST, so hooks.server.ts already limits them to editors and owners.
+	// Every action is a POST, so hooks.server.ts already limits them to editors and owners — except
+	// `comment` and `deleteComment`, which viewers may also use (see viewerMayPost).
 	comment: async ({ params, request, locals }) => {
 		const world = locals.world!;
 		const el = getElement(world.id, params.element);
@@ -82,7 +85,8 @@ export const actions: Actions = {
 	},
 	deleteComment: async ({ request, locals }) => {
 		const world = locals.world!;
-		deleteComment(world.id, str(await request.formData(), 'id'));
+		const id = str(await request.formData(), 'id');
+		deleteComment(world.id, id, canEdit(world.role) ? undefined : (locals.user?.id ?? ''));
 		return { ok: true };
 	},
 	delete: async ({ params, locals }) => {
@@ -121,13 +125,33 @@ export const actions: Actions = {
 		const id = str(form, 'id');
 		const label = str(form, 'label').trim();
 		if (!label) return fail(400, { relEditError: 'Give the relationship a label.', relId: id });
+		const otherId = str(form, 'otherId');
+		if (otherId) {
+			const other = getElementById(otherId);
+			if (!other || other.worldId !== world.id)
+				return fail(400, { relEditError: 'Pick an element.', relId: id });
+			if (other.id === el.id)
+				return fail(400, { relEditError: 'An element cannot relate to itself.', relId: id });
+		}
 		const ok = updateRelationship(world.id, el.id, id, {
 			label,
 			reverseLabel: str(form, 'reverseLabel').trim(),
 			notes: str(form, 'notes').trim(),
-			swap: form.get('swap') === 'on'
+			swap: form.get('swap') === 'on',
+			otherId: otherId || undefined
 		});
 		if (!ok) error(404, 'Relationship not found');
+		return { ok: true };
+	},
+	moveChild: async ({ params, request, locals }) => {
+		const world = locals.world!;
+		const el = getElement(world.id, params.element);
+		if (!el) error(404);
+		const form = await request.formData();
+		const child = getElementById(str(form, 'id'));
+		// Only this element's own children can be reordered from its page.
+		if (!child || child.worldId !== world.id || child.parentId !== el.id) error(404);
+		moveChild(world.id, child.id, str(form, 'dir') === 'up' ? 'up' : 'down');
 		return { ok: true };
 	},
 	removeRelationship: async ({ request, locals }) => {

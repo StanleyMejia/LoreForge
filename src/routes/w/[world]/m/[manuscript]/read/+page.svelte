@@ -70,10 +70,15 @@
 						<a href="{mbase}/c/{c.id}" class="hover:text-amber-300">Edit chapter ✎</a> ·
 						{c.wordCount.toLocaleString('en')} words · {c.status}
 					</p>
-					{#if c.comments.length}
-						<!-- Read-only here for everyone: replies and new threads live in the chapter editor. -->
-						<CommentThreads comments={c.comments} readonly role="chapter-comments" />
-					{/if}
+					<!-- Resolving stays in the chapter editor; posting and replying work here, for viewers too. -->
+					<CommentThreads
+						comments={c.comments}
+						hidden={{ chapterId: c.id }}
+						editor={false}
+						userId={data.user?.id}
+						placeholder="Leave a note on this chapter…"
+						role="chapter-comments"
+					/>
 				</section>
 			{:else}
 				<p class="muted">No chapters yet.</p>

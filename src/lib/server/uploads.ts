@@ -1,5 +1,13 @@
 import { env } from '$env/dynamic/private';
-import { copyFileSync, createReadStream, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import {
+	copyFileSync,
+	createReadStream,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	statSync
+} from 'node:fs';
 import { writeFile, unlink } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
@@ -81,6 +89,11 @@ export function fileExists(storagePath: string): boolean {
 	} catch {
 		return false;
 	}
+}
+
+/** A stored file's bytes, for exports that embed images. */
+export function readStored(storagePath: string): Uint8Array {
+	return readFileSync(absolutePath(storagePath));
 }
 
 /** A web ReadableStream for a stored file (for Response bodies). */

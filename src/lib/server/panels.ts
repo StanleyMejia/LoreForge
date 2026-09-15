@@ -1,5 +1,5 @@
 import type { FieldDef, FieldKind, Panel, PanelKind } from '$lib/types';
-import { newId } from '$lib/types';
+import { newId, refList } from '$lib/types';
 import { slugify } from '$lib/slug';
 import { num, str } from './coerce';
 
@@ -24,7 +24,10 @@ function cleanFields(raw: unknown): FieldDef[] {
 			def.options = (Array.isArray(f.options) ? f.options : [])
 				.map((o) => str(o, 200).trim())
 				.filter(Boolean);
-		if (kind === 'element') def.ref = str(f.ref, 100).trim();
+		if (kind === 'element') {
+			def.ref = str(f.ref, 100).trim();
+			if (f.multiple === true) def.multiple = true;
+		}
 		out.push(def);
 	}
 	return out;
@@ -50,7 +53,10 @@ export function cleanPanels(raw: unknown, template = false): Panel[] {
 				const values: Record<string, string> = {};
 				if (!template && p.values && typeof p.values === 'object') {
 					for (const f of fields) {
-						const v = str((p.values as Record<string, unknown>)[f.key], 5000).trim();
+						let v = str((p.values as Record<string, unknown>)[f.key], 5000).trim();
+						// Element references: de-duplicated, and a single field keeps one.
+						if (f.kind === 'element')
+							v = (f.multiple ? refList(v) : refList(v).slice(0, 1)).join(',');
 						if (v) values[f.key] = v;
 					}
 				}

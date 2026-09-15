@@ -100,7 +100,13 @@
 
 	<div class="grid gap-8 lg:grid-cols-[1fr_300px]">
 		<article class="space-y-4">
-			<ElementPanels panels={data.panels} {base} comments={data.comments} readonly={data.readonly}>
+			<ElementPanels
+				panels={data.panels}
+				{base}
+				comments={data.comments}
+				readonly={data.readonly}
+				userId={data.user?.id}
+			>
 				{#snippet empty()}
 					<p class="muted">
 						Nothing filled in yet. <a
@@ -120,13 +126,35 @@
 						Contains · {data.children.length}
 					</h2>
 					<ul class="space-y-1 text-sm">
-						{#each data.children as c (c.id)}
-							<li>
-								<a href="{base}/e/{c.slug}" class="flex items-baseline gap-2 hover:text-amber-300">
+						{#each data.children as c, i (c.id)}
+							<li class="flex items-baseline gap-1">
+								<a
+									href="{base}/e/{c.slug}"
+									class="flex min-w-0 flex-1 items-baseline gap-2 hover:text-amber-300"
+								>
 									<span class="opacity-70">{c.typeIcon}</span>
 									<span class="truncate text-slate-200">{c.name}</span>
 									<span class="muted ml-auto shrink-0 text-xs">{c.typeName}</span>
 								</a>
+								{#if !data.readonly && data.children.length > 1}
+									<form method="POST" action="?/moveChild" use:enhance class="flex shrink-0">
+										<input type="hidden" name="id" value={c.id} />
+										<button
+											class="px-0.5 text-xs text-slate-600 hover:text-amber-300 disabled:opacity-30"
+											name="dir"
+											value="up"
+											title="Move up"
+											disabled={i === 0}>↑</button
+										>
+										<button
+											class="px-0.5 text-xs text-slate-600 hover:text-amber-300 disabled:opacity-30"
+											name="dir"
+											value="down"
+											title="Move down"
+											disabled={i === data.children.length - 1}>↓</button
+										>
+									</form>
+								{/if}
 							</li>
 						{/each}
 					</ul>
@@ -195,6 +223,16 @@
 											>
 												<input type="hidden" name="id" value={r.id} />
 												<p class="text-xs text-slate-500">{from} → {to}</p>
+												<label class="block text-xs text-slate-500"
+													>Other end
+													<select class="select mt-1" name="otherId">
+														{#each data.index.filter((e) => e.id !== data.element.id) as e (e.id)}
+															<option value={e.id} selected={e.id === r.other.id}
+																>{e.icon} {e.name}</option
+															>
+														{/each}
+													</select>
+												</label>
 												<input
 													class="input"
 													name="label"

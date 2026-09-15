@@ -9,7 +9,8 @@
 		type FieldDef,
 		type FieldKind,
 		type Panel,
-		type PanelKind
+		type PanelKind,
+		refList
 	} from '$lib/types';
 	import { slugify } from '$lib/slug';
 
@@ -42,7 +43,13 @@
 	let chooser = $state(false);
 	let editingTitle: string | null = $state(null);
 	let addingField: string | null = $state(null);
-	let newField = $state({ label: '', kind: 'text' as FieldKind, ref: '', options: '' });
+	let newField = $state({
+		label: '',
+		kind: 'text' as FieldKind,
+		ref: '',
+		options: '',
+		multiple: false
+	});
 	let linkQuery: Record<string, string> = $state({});
 
 	const FIELD_KINDS: { v: FieldKind; l: string }[] = [
@@ -78,8 +85,9 @@
 				.map((s) => s.trim())
 				.filter(Boolean);
 		if (def.kind === 'element') def.ref = newField.ref;
+		if (def.kind === 'element' && newField.multiple) def.multiple = true;
 		p.fields.push(def);
-		newField = { label: '', kind: 'text', ref: '', options: '' };
+		newField = { label: '', kind: 'text', ref: '', options: '', multiple: false };
 		addingField = null;
 	}
 	/**
@@ -249,6 +257,18 @@
 												.map((s) => s.trim())
 												.filter(Boolean))}
 									/>
+								{:else if f.kind === 'element'}
+									<label class="flex items-center gap-2 text-xs text-slate-400">
+										<input
+											type="checkbox"
+											checked={!!f.multiple}
+											onchange={(e) => {
+												if (e.currentTarget.checked) f.multiple = true;
+												else delete f.multiple;
+											}}
+										/>
+										Allow several <span class="muted">· key: {f.key}</span>
+									</label>
 								{:else}
 									<div class="muted text-xs">key: {f.key}</div>
 								{/if}
@@ -263,6 +283,23 @@
 									<option value="">—</option>
 									{#each f.options ?? [] as o (o)}<option value={o}>{o}</option>{/each}
 								</select>
+							{:else if f.kind === 'element' && f.multiple}
+								<select
+									class="select"
+									id="{p.id}-{f.key}"
+									multiple
+									size="5"
+									onchange={(e) =>
+										(p.values[f.key] = [...e.currentTarget.selectedOptions]
+											.map((o) => o.value)
+											.join(','))}
+								>
+									{#each elementOptions(f) as e (e.id)}<option
+											value={e.id}
+											selected={refList(p.values[f.key]).includes(e.id)}>{e.icon} {e.name}</option
+										>{/each}
+								</select>
+								<p class="muted mt-1 text-xs">Ctrl- or ⌘-click to choose several.</p>
 							{:else if f.kind === 'element'}
 								<select class="select" id="{p.id}-{f.key}" bind:value={p.values[f.key]}>
 									<option value="">—</option>
@@ -304,11 +341,16 @@
 								bind:value={newField.options}
 							/>
 						{:else if newField.kind === 'element'}
-							<select class="select" bind:value={newField.ref}
-								><option value="">Any element</option>{#each typeKeys as t (t.key)}<option
-										value={t.key}>{t.name}</option
-									>{/each}</select
-							>
+							<span class="flex items-center gap-2">
+								<select class="select" bind:value={newField.ref}
+									><option value="">Any element</option>{#each typeKeys as t (t.key)}<option
+											value={t.key}>{t.name}</option
+										>{/each}</select
+								>
+								<label class="flex shrink-0 items-center gap-1 text-xs text-slate-400"
+									><input type="checkbox" bind:checked={newField.multiple} /> Several</label
+								>
+							</span>
 						{:else}<span></span>{/if}
 						<div class="flex gap-1">
 							<button type="button" class="btn btn-sm" onclick={() => addField(p)}>Add</button

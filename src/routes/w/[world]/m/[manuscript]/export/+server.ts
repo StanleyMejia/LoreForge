@@ -5,6 +5,8 @@ import { elementIndex } from '$lib/server/repo/elements';
 import { makeResolver } from '$lib/markdown';
 import { buildEpub, type ExportBook } from '$lib/server/epub';
 import { buildDocx } from '$lib/server/docx';
+import { getUpload } from '$lib/server/repo/uploads';
+import { fileExists, readStored } from '$lib/server/uploads';
 import { slugify } from '$lib/slug';
 
 const TYPES = {
@@ -36,7 +38,12 @@ export const GET: RequestHandler = ({ params, url, locals }) => {
 					elementBase: `/w/${world.slug}/e/`,
 					resolve: makeResolver(elementIndex(world.id))
 				})
-			: buildDocx(book);
+			: buildDocx(book, (href) => {
+					// Only this world's own uploads are embedded; outside URLs are never fetched.
+					const id = /\/w\/[^/]+\/files\/([\w-]+)$/.exec(href)?.[1];
+					const row = id ? getUpload(world.id, id) : undefined;
+					return row && fileExists(row.storagePath) ? readStored(row.storagePath) : null;
+				});
 
 	return new Response(file, {
 		headers: {

@@ -10,14 +10,17 @@
 		base,
 		empty,
 		comments,
-		readonly = false
+		readonly = false,
+		userId = null
 	}: {
 		panels: ViewPanel[];
 		base: string;
 		empty?: Snippet;
 		/** Omitted on a historical revision: comments belong to the element as it is now. */
 		comments?: CommentView[];
+		/** A viewer: may still comment, and delete their own comments. */
 		readonly?: boolean;
+		userId?: string | null;
 	} = $props();
 </script>
 
@@ -34,7 +37,10 @@
 							{r.label}
 						</dt>
 						<dd class="mt-0.5 text-sm whitespace-pre-line text-slate-200">
-							{#if r.href}<a href={r.href} class="text-amber-400 hover:underline"
+							{#if r.refs}{#each r.refs as ref, i (ref.href)}{#if i},
+									{/if}<a href={ref.href} class="text-amber-400 hover:underline"
+										>{ref.icon} {ref.name}</a
+									>{/each}{:else if r.href}<a href={r.href} class="text-amber-400 hover:underline"
 									>{r.icon} {r.value}</a
 								>{:else}{r.value}{/if}
 						</dd>
@@ -117,7 +123,8 @@
 			<CommentThreads
 				comments={comments.filter((c) => c.panelId === p.id)}
 				hidden={{ panelId: p.id }}
-				{readonly}
+				editor={!readonly}
+				{userId}
 				placeholder="Leave a note on this panel…"
 				role="panel-comments"
 			/>

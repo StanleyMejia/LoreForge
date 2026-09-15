@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db';
 import { DEFAULT_TYPES } from '$lib/defaults';
-import { addNewFields, syncSelectOptions } from '$lib/types';
+import { addNewFields, syncMultiple, syncSelectOptions } from '$lib/types';
 import { slugify, uniquify } from '$lib/slug';
 import { removeWorldDir } from '../uploads';
 
@@ -191,7 +191,8 @@ export function updateType(
 			for (const e of rows) {
 				const options = syncSelectOptions(patch.panels, e.panels);
 				const fields = addNewFields(before, patch.panels, e.panels);
-				if (options || fields)
+				const multiple = syncMultiple(patch.panels, e.panels);
+				if (options || fields || multiple)
 					tx.update(elements).set({ panels: e.panels }).where(eq(elements.id, e.id)).run();
 			}
 		}
